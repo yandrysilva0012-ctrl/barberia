@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barbería VIP | Agenda tu Cita</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-black text-gray-100 font-sans min-h-screen selection:bg-amber-500 selection:text-black">
+
+    <!-- Menú Superior Profesional -->
+    <header class="bg-zinc-950 border-b border-zinc-800 p-4 sticky top-0 z-50 flex justify-between items-center shadow-xl">
+        <div class="flex items-center space-x-3">
+            <button onclick="toggleMenu()" class="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 transition text-amber-500 border border-zinc-800 focus:outline-none cursor-pointer">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+            <h1 class="text-xl font-extrabold tracking-wider text-amber-500 uppercase">💈 Barbería VIP</h1>
+        </div>
+        <div id="estadoBarberoBannerTop" class="text-xs px-3 py-1.5 rounded-full font-semibold bg-red-950/80 text-red-500 border border-red-900/60 uppercase tracking-widest">
+            Cerrado
+        </div>
+    </header>
+
+    <!-- Menú Desplegable (Sidebar Izquierdo) -->
+    <div id="sidebar" class="fixed inset-y-0 left-0 w-72 bg-zinc-950 border-r border-zinc-800 z-50 transform -translate-x-full transition-transform duration-300 ease-in-out p-6 flex flex-col justify-between shadow-2xl">
+        <div class="space-y-6">
+            <div class="flex justify-between items-center border-b border-zinc-800 pb-4">
+                <h2 class="text-base font-bold text-amber-500 uppercase tracking-wider">Menú Principal</h2>
+                <button onclick="toggleMenu()" class="text-zinc-400 hover:text-white font-bold text-2xl cursor-pointer">&times;</button>
+            </div>
+            <nav class="space-y-2">
+                <button onclick="verCliente(); toggleMenu();" class="w-full text-left px-4 py-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 transition font-medium text-sm text-gray-200 border border-zinc-800 cursor-pointer flex items-center gap-3">📅 Agendar Cita</button>
+                <button onclick="solicitarAccesoAdmin(); toggleMenu();" class="w-full text-left px-4 py-3 rounded-xl bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 transition font-medium text-sm border border-amber-500/30 cursor-pointer flex items-center gap-3">🔒 Panel Administrador</button>
+            </nav>
+        </div>
+        <div class="text-xs text-zinc-600 text-center border-t border-zinc-900 pt-4">
+            Barbería VIP &copy; 2026
+        </div>
+    </div>
+
+    <!-- Overlay oscuro -->
+    <div id="overlay" onclick="toggleMenu()" class="fixed inset-0 bg-black/80 z-40 hidden transition-opacity backdrop-blur-xs"></div>
+
+    <main class="max-w-3xl mx-auto p-4 md:p-6 space-y-6">
+
+        <!-- ================= VISTA CLIENTE ================= -->
+        <section id="vistaCliente" class="space-y-6">
+            
+            <!-- Banner Principal -->
+            <div class="bg-zinc-950 p-6 md:p-8 rounded-3xl border border-zinc-800 text-center shadow-2xl space-y-3 relative overflow-hidden">
+                <!-- Detalle dorado sutil de fondo -->
+                <div class="absolute -top-24 -right-24 w-48 h-48 bg-amber-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
+                <!-- Eslogan solicitado -->
+                <span class="text-xs uppercase tracking-widest px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 font-bold border border-amber-500/30">✨ Agenda tu cita con un solo toque</span>
+                
+                <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight text-white">Reserva tu Turno</h2>
+                <div class="flex justify-center pt-1">
+                    <p id="estadoBarberoBanner" class="text-xs px-3 py-1 rounded-full font-semibold bg-red-950/80 text-red-500 border border-red-900/60 uppercase tracking-wider">Barbero no disponible</p>
+                </div>
+                
+                <!-- Fecha Actual -->
+                <div class="inline-flex items-center gap-2 bg-zinc-900 px-4 py-2 rounded-xl border border-zinc-800 text-xs text-zinc-400 mt-2">
+                    <span>📅 Fecha de Hoy:</span>
+                    <span id="fechaActualTxt" class="font-bold text-amber-500">--/--/----</span>
+                </div>
+            </div>
+
+            <!-- Formulario de Reserva -->
+            <div class="bg-zinc-950 p-6 md:p-8 rounded-3xl border border-zinc-800 shadow-2xl space-y-6">
+                <h3 class="text-lg font-bold text-white border-b border-zinc-800 pb-3 flex items-center justify-between">
+                    <span>Detalles de la Reserva</span>
+                    <span class="text-amber-500 text-sm font-semibold">$10 USD</span>
+                </h3>
+
+                <form id="formReserva" class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-2">Tu Nombre y Apellido:</label>
+                        <input type="text" id="nombreCliente" required placeholder="Ej. Carlos Mendoza" class="w-full p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:border-amber-500 text-sm transition">
+                    </div>
+                    
+                    <!-- Selector de Horas Dinámico -->
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-2">Selecciona la Hora:</label>
+                        <select id="horaSeleccionada" required class="w-full p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 text-amber-500 font-bold focus:outline-none focus:border-amber-500 text-sm transition">
+                            <option value="">Cargando horas...</option>
+                        </select>
+                        <p class="text-xs text-zinc-500 mt-1.5">Las horas marcadas en <span class="text-red-500 font-bold">rojo</span> ya se encuentran ocupadas.</p>
+                    </div>
+
+                    <!-- Datos de Pago Móvil -->
+                    <div class="p-4 bg-zinc-900/80 rounded-2xl border border-zinc-800 space-y-4">
+                        <div class="flex justify-between items-center">
+                            <h4 class="font-bold text-amber-500 text-xs uppercase tracking-wider">Datos de Pago Móvil ($10)</h4>
+                            <span class="text-[10px] bg-zinc-800 text-zinc-300 px-2.5 py-1 rounded-md font-semibold">Tasa Fija</span>
+                        </div>
+                        <p class="text-xs text-zinc-400 leading-relaxed">Realiza tu pago móvil con los siguientes datos, escanea el código QR y luego ingresa tu número de referencia.</p>
+                        
+                        <div class="flex flex-col sm:flex-row items-center gap-4 bg-black/40 p-4 rounded-xl border border-zinc-800/80">
+                            <!-- Código QR Blanco Minimalista -->
+                            <div class="bg-white p-2 rounded-xl shadow-md shrink-0">
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=PagoMovilBarberiaVIP" alt="QR Pago Móvil" class="w-24 h-24">
+                            </div>
+                            <div class="text-xs space-y-1.5 text-zinc-300 w-full">
+                                <p><strong>Banco:</strong> Banco Mercantil (0105)</p>
+                                <p><strong>Cédula/RIF:</strong> V-12.345.678</p>
+                                <p><strong>Teléfono:</strong> <span id="lblTelefonoBarbero" class="text-amber-500 font-bold">+58 412-1234567</span></p>
+                                <a id="linkWhatsApp" href="#" target="_blank" class="inline-block mt-1 text-[11px] bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 border border-emerald-600/40 px-3 py-1 rounded-lg font-semibold transition">💬 Enviar Comprobante WhatsApp</a>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">Número de Referencia:</label>
+                            <input type="text" id="referenciaPago" placeholder="Ej. 482910" required class="w-full p-3 rounded-xl bg-black border border-zinc-800 text-white placeholder-zinc-600 focus:outline-none focus:border-amber-500 text-sm transition">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-extrabold uppercase tracking-wider rounded-xl transition cursor-pointer shadow-lg shadow-amber-500/10">Agendar Cita Ahora</button>
+                </form>
+            </div>
+
+            <!-- Mis Citas Solicitadas / Estado -->
+            <div class="bg-zinc-950 p-6 md:p-8 rounded-3xl border border-zinc-800 shadow-2xl space-y-4">
+                <h3 class="text-base font-bold text-white border-b border-zinc-800 pb-3">Estado de mis Citas</h3>
+                <div id="listaMisCitas" class="space-y-3">
+                    <p class="text-xs text-zinc-500 italic">No tienes solicitudes registradas.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= VISTA ADMIN ================= -->
+        <section id="vistaAdmin" class="space-y-6 hidden">
+            <div class="bg-zinc-950 p-6 md:p-8 rounded-3xl border border-zinc-800 shadow-2xl space-y-6">
+                <div class="flex justify-between items-center flex-wrap gap-4 border-b border-zinc-800 pb-4">
+                    <div>
+                        <h2 class="text-xl font-extrabold text-white">Panel de Administración</h2>
+                        <p class="text-xs text-zinc-400 mt-0.5">Controla tu jornada y confirma turnos.</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button onclick="verCliente()" class="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 text-xs rounded-xl font-bold text-zinc-300 border border-zinc-800 transition cursor-pointer">← Vista Cliente</button>
+                        <!-- Interruptor Laboral -->
+                        <div class="flex items-center gap-2 bg-zinc-900 px-3 py-2 rounded-xl border border-zinc-800">
+                            <span class="text-xs font-semibold text-zinc-300">¿Laborando?</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="switchLaborando" onchange="toggleLaborando()" class="sr-only peer">
+                                <div class="w-9 h-5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configuración de Horario -->
+                <div class="bg-zinc-900 p-4 rounded-2xl border border-zinc-800 space-y-3">
+                    <h3 class="font-bold text-amber-500 text-xs uppercase tracking-wider">Horario de Jornada Laboral</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">Desde:</label>
+                            <input type="time" id="inputHoraInicio" value="10:00" class="w-full p-2.5 rounded-xl bg-black border border-zinc-800 text-sm text-white">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">Hasta:</label>
+                            <input type="time" id="inputHoraFin" value="20:00" class="w-full p-2.5 rounded-xl bg-black border border-zinc-800 text-sm text-white">
+                        </div>
+                    </div>
+                    <button onclick="guardarHorarioAdmin()" class="bg-amber-500 hover:bg-amber-400 text-black text-xs px-4 py-2.5 rounded-xl font-bold uppercase tracking-wider transition cursor-pointer">Guardar Horario</button>
+                </div>
+
+                <!-- Configuración de Teléfono -->
+                <div class="bg-zinc-900 p-4 rounded-2xl border border-zinc-800 space-y-3">
+                    <h3 class="font-bold text-amber-500 text-xs uppercase tracking-wider">Datos de Contacto y Enlace</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">Teléfono Pago Móvil:</label>
+                            <input type="text" id="inputTelefono" value="584121234567" class="w-full p-2.5 rounded-xl bg-black border border-zinc-800 text-sm text-white">
+                            <button onclick="guardarConfigAdmin()" class="mt-2 bg-zinc-800 hover:bg-zinc-700 text-xs px-3 py-1.5 rounded-xl font-bold text-zinc-200 transition cursor-pointer">Actualizar Teléfono</button>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">Enlace de la Web:</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="inputEnlaceCompartir" readonly class="w-full p-2.5 rounded-xl bg-black border border-zinc-800 text-xs text-zinc-400 truncate">
+                                <button onclick="copiarEnlace()" class="bg-zinc-800 hover:bg-zinc-700 px-3 py-2 rounded-xl text-xs font-bold text-zinc-200 transition shrink-0 cursor-pointer">Copiar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gestión de Citas y Confirmaciones -->
+                <div class="space-y-3">
+                    <h3 class="font-bold text-white text-sm">Solicitudes y Citas de Clientes</h3>
+                    <div id="listaCitasAdmin" class="space-y-3 max-h-96 overflow-y-auto">
+                        <p class="text-xs text-zinc-500 italic">No hay citas registradas.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Script de Funcionalidad -->
+    <script>
+        const PASSWORD_ADMIN = "9010";
+
+        if (!localStorage.getItem('barberia_config')) {
+            localStorage.setItem('barberia_config', JSON.stringify({
+                laborando: false,
+                telefono: '584121234567',
+                horaInicio: '10:00',
+                horaFin: '20:00'
+            }));
+        }
+        if (!localStorage.getItem('barberia_citas')) {
+            localStorage.setItem('barberia_citas', JSON.stringify([]));
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('inputEnlaceCompartir').value = window.location.href;
+            cargarConfiguracionInterfaz();
+            generarOpcionesHoras();
+            renderizarCitasAdmin();
+            renderizarMisCitasCliente();
+        });
+
+        function generarOpcionesHoras() {
+            const hoy = new Date();
+            const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('fechaActualTxt').innerText = hoy.toLocaleDateString('es-ES', opcionesFecha);
+
+            let config = JSON.parse(localStorage.getItem('barberia_config'));
+            let citas = JSON.parse(localStorage.getItem('barberia_citas'));
+            let selectHora = document.getElementById('horaSeleccionada');
+
+            // Las horas se bloquean si están Pendientes o Confirmadas
+            let horasOcupadas = citas
+                .filter(c => c.estado === 'Pendiente' || c.estado === 'Confirmada')
+                .map(c => c.hora);
+
+            let [hInicio, mInicio] = config.horaInicio.split(':').map(Number);
+            let [hFin, mFin] = config.horaFin.split(':').map(Number);
+
+            let opcionesHTML = '<option value="">Selecciona una hora disponible</option>';
+            let horaActualMinutos = hInicio * 60 + mInicio;
+            let horaFinMinutos = hFin * 60 + mFin;
+
+            while (horaActualMinutos <= horaFinMinutos) {
+                let h = Math.floor(horaActualMinutos / 60);
+                let m = horaActualMinutos % 60;
+                
+                let formatoHora = h % 12 === 0 ? 12 : h % 12;
+                let ampm = h >= 12 ? 'PM' : 'AM';
+                let minutosStr = m < 10 ? '0' + m : m;
+                let horaStr = `${formatoHora}:${minutosStr} ${ampm}`;
+
+                let ocupada = horasOcupadas.includes(horaStr);
+                if (ocupada) {
+                    opcionesHTML += `<option value="${horaStr}" disabled class="text-red-500 bg-zinc-950 font-bold">🔴 ${horaStr} (Ocupada)</option>`;
+                } else {
+                    opcionesHTML += `<option value="${horaStr}" class="text-amber-500 bg-zinc-950">🟢 ${horaStr} (Disponible)</option>`;
+                }
+
+                horaActualMinutos += 60; // Intervalos de 1 hora
+            }
+
+            selectHora.innerHTML = opcionesHTML;
+        }
+
+        function toggleMenu() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
+        function solicitarAccesoAdmin() {
+            let pass = prompt("Introduce la contraseña de Administrador:");
+            if (pass === PASSWORD_ADMIN) {
+                verAdmin();
+            } else if (pass !== null) {
+                alert("Contraseña incorrecta.");
+            }
+        }
+
+        function verCliente() {
+            document.getElementById('vistaCliente').classList.remove('hidden');
+            document.getElementById('vistaAdmin').classList.add('hidden');
+            renderizarMisCitasCliente();
+            generarOpcionesHoras();
+        }
+
+        function verAdmin() {
+            document.getElementById('vistaAdmin').classList.remove('hidden');
+            document.getElementById('vistaCliente').classList.add('hidden');
+            renderizarCitasAdmin();
+        }
+
+        function toggleLaborando() {
+            const isChecked = document.getElementById('switchLaborando').checked;
+            let config = JSON.parse(localStorage.getItem('barberia_config'));
+            config.laborando = isChecked;
+            localStorage.setItem('barberia_config', JSON.stringify(config));
+            actualizarBannerEstado(isChecked);
+        }
+
+        function guardarConfigAdmin() {
+            let tel = document.getElementById('inputTelefono').value;
+            let config = JSON.parse(localStorage.getItem('barberia_config'));
+            config.telefono = tel;
+            localStorage.setItem('barberia_config', JSON.stringify(config));
+            cargarConfiguracionInterfaz();
+            alert("Teléfono actualizado con éxito.");
+        }
+
+        function guardarHorarioAdmin() {
+            let hIni = document.getElementById('inputHoraInicio').value;
+            let hFin = document.getElementById('inputHoraFin').value;
+            let config = JSON.parse(localStorage.getItem('barberia_config'));
+            config.horaInicio = hIni;
+            config.horaFin = hFin;
+            localStorage.setItem('barberia_config', JSON.stringify(config));
+            generarOpcionesHoras();
+            alert("Horario de jornada guardado.");
+        }
+
+        function cargarConfiguracionInterfaz() {
+            let config = JSON.parse(localStorage.getItem('barberia_config'));
+            document.getElementById('switchLaborando').checked = config.laborando;
+            document.getElementById('inputTelefono').value = config.telefono;
+            document.getElementById('inputHoraInicio').value = config.horaInicio || '10:00';
+            document.getElementById('inputHoraFin').value = config.horaFin || '20:00';
+            document.getElementById('lblTelefonoBarbero').innerText = "+" + config.telefono;
+            document.getElementById('linkWhatsApp').href = `https://wa.me/${config.telefono}?text=Hola,%20adjunto%20el%20comprobante%20de%20pago%20movil.`;
+            actualizarBannerEstado(config.laborando);
+        }
+
+        function actualizarBannerEstado(laborando) {
+            const banner = document.getElementById('estadoBarberoBanner');
+            const bannerTop = document.getElementById('estadoBarberoBannerTop');
+            if (laborando) {
+                banner.className = "text-xs px-3 py-1 rounded-full font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-900/60 uppercase tracking-wider";
+                banner.innerText = "● Barbero Disponible";
+                bannerTop.className = "text-xs px-3 py-1.5 rounded-full font-semibold bg-emerald-950/80 text-emerald-400 border border-emerald-900/60 uppercase tracking-widest";
+                bannerTop.innerText = "Abierto";
+            } else {
+                banner.className = "text-xs px-3 py-1 rounded-full font-semibold bg-red-950/80 text-red-500 border border-red-900/60 uppercase tracking-wider";
+                banner.innerText = "● Barbero No Disponible";
+                bannerTop.className = "text-xs px-3 py-1.5 rounded-full font-semibold bg-red-950/80 text-red-500 border border-red-900/60 uppercase tracking-widest";
+                bannerTop.innerText = "Cerrado";
+            }
+        }
+
+        function copiarEnlace() {
+            const input = document.getElementById('inputEnlaceCompartir');
+            input.select();
+            navigator.clipboard.writeText(input.value);
+            alert("¡Enlace copiado!");
+        }
+
+        // Enviar Reserva
+        document.getElementById('formReserva').addEventListener('submit', function(e) {
+            e.preventDefault();
+            let config = JSON.parse(localStorage.getItem('barberia_config'));
+            if (!config.laborando) {
+                alert("El barbero no está laborando actualmente.");
+                return;
+            }
+
+            const nombre = document.getElementById('nombreCliente').value.trim();
+            const hora = document.getElementById('horaSeleccionada').value;
+            const referencia = document.getElementById('referenciaPago').value.trim();
+
+            let citas = JSON.parse(localStorage.getItem('barberia_citas'));
+            if (citas.some(c => c.hora === hora && (c.estado === 'Pendiente' || c.estado === 'Confirmada'))) {
+                alert("Lo sentimos, esta hora acaba de ser ocupada.");
+                generarOpcionesHoras();
+                return;
+            }
+
+            const nuevaCita = {
+                id: Date.now(),
+                nombre,
+                hora,
+                referencia,
+                estado: "Pendiente" // Queda a la espera de confirmación
+            };
+
+            citas.push(nuevaCita);
+            localStorage.setItem('barberia_citas', JSON.stringify(citas));
+
+            alert("¡Cita solicitada con éxito! Queda a la espera de confirmación por el barbero.");
+            document.getElementById('formReserva').reset();
+            generarOpcionesHoras();
+            renderizarCitasAdmin();
+            renderizarMisCitasCliente();
+        });
+
+        // Renderizar Mis Citas (Vista Cliente)
+        function renderizarMisCitasCliente() {
+            const contenedor = document.getElementById('listaMisCitas');
+            let citas = JSON.parse(localStorage.getItem('barberia_citas'));
+
+            if (citas.length === 0) {
+                contenedor.innerHTML = `<p class="text-xs text-zinc-500 italic">No tienes solicitudes registradas.</p>`;
+                return;
+            }
+
+            contenedor.innerHTML = '';
+            citas.forEach(cita => {
+                let badgeClass = "bg-amber-500/10 text-amber-500 border-amber-500/30";
+                let textoEstado = "⏳ En espera de confirmación";
+
+                if (cita.estado === "Confirmada") {
+                    badgeClass = "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+                    textoEstado = "✅ Cita Confirmada";
+                } else if (cita.estado === "Rechazada") {
+                    badgeClass = "bg-red-500/10 text-red-500 border-red-500/30";
+                    textoEstado = "❌ Rechazada / No disponible";
+                }
+
+                const div = document.createElement('div');
+                div.className = "bg-zinc-900 p-4 rounded-2xl border border-zinc-800 space-y-2 text-xs";
+                div.innerHTML = `
+                    <div class="flex justify-between items-center flex-wrap gap-2">
+                        <span class="font-bold text-white text-sm">${cita.nombre}</span>
+                        <span class="px-2.5 py-1 rounded-full border font-semibold ${badgeClass}">${textoEstado}</span>
+                    </div>
+                    <p class="text-zinc-400">⏰ Hora: <strong class="text-amber-500">${cita.hora}</strong> | Ref: ${cita.referencia}</p>
+                `;
+                contenedor.appendChild(div);
+            });
+        }
+
+        // Renderizar Panel Admin (Botón de Confirmar)
+        function renderizarCitasAdmin() {
+            const contenedor = document.getElementById('listaCitasAdmin');
+            let citas = JSON.parse(localStorage.getItem('barberia_citas'));
+
+            if (citas.length === 0) {
+                contenedor.innerHTML = `<p class="text-xs text-zinc-500 italic">No hay citas registradas.</p>`;
+                return;
+            }
+
+            contenedor.innerHTML = '';
+            citas.forEach(cita => {
+                let estadoColor = "text-amber-500";
+                if (cita.estado === "Confirmada") estadoColor = "text-emerald-400";
+                if (cita.estado === "Rechazada") estadoColor = "text-red-500";
+
+                const div = document.createElement('div');
+                div.className = "bg-zinc-900 p-4 rounded-2xl border border-zinc-800 flex justify-between items-center text-xs flex-wrap gap-3";
+                div.innerHTML = `
+                    <div class="space-y-1">
+                        <p class="font-bold text-white text-sm">${cita.nombre} - <span class="text-amber-500">${cita.hora}</span></p>
+                        <p class="text-zinc-400">Ref: ${cita.referencia} | Estado: <strong class="${estadoColor}">${cita.estado}</strong></p>
+                    </div>
+                    <div class="flex gap-2 items-center">
+                        ${cita.estado === 'Pendiente' ? `
+                            <button onclick="cambiarEstado(${cita.id}, 'Confirmada')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-2 rounded-xl transition cursor-pointer">Confirmar</button>
+                            <button onclick="cambiarEstado(${cita.id}, 'Rechazada')" class="bg-red-600 hover:bg-red-500 text-white font-bold px-3 py-2 rounded-xl transition cursor-pointer">Rechazar</button>
+                        ` : ''}
+                        <button onclick="eliminarCita(${cita.id})" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white font-bold px-2.5 py-2 rounded-xl transition cursor-pointer">🗑️</button>
+                    </div>
+                `;
+                contenedor.appendChild(div);
+            });
+        }
+
+        function cambiarEstado(id, nuevoEstado) {
+            let citas = JSON.parse(localStorage.getItem('barberia_citas'));
+            citas = citas.map(c => {
+                if (c.id === id) c.estado = nuevoEstado;
+                return c;
+            });
+            localStorage.setItem('barberia_citas', JSON.stringify(citas));
+            generarOpcionesHoras();
+            renderizarCitasAdmin();
+            renderizarMisCitasCliente();
+        }
+
+        function eliminarCita(id) {
+            let citas = JSON.parse(localStorage.getItem('barberia_citas'));
+            citas = citas.filter(c => c.id !== id);
+            localStorage.setItem('barberia_citas', JSON.stringify(citas));
+            generarOpcionesHoras();
+            renderizarCitasAdmin();
+            renderizarMisCitasCliente();
+        }
+    </script>
+</body>
+</html>
