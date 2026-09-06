@@ -6,6 +6,8 @@
     <title>Titi Barber | Agenda tu Cita</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body {
             background-color: #000000 !important;
@@ -313,48 +315,66 @@
 
     </main>
 
-    <!-- Script -->
+    <!-- Script Conectado a Supabase -->
     <script>
+        // CONFIGURA TUS CREDENCIALES DE SUPABASE AQUÍ
+        const SUPABASE_URL = 'TU_SUPABASE_URL'; 
+        const SUPABASE_ANON_KEY = 'TU_SUPABASE_ANON_KEY';
+        
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         const CORREO_ADMIN_VALIDO = "titibarber@gmail.com";
         const PASSWORD_ADMIN = "9010";
         const SESSION_TOKEN_KEY = "titibarber_admin_token";
 
-        if (!localStorage.getItem('titibarber_config')) {
-            localStorage.setItem('titibarber_config', JSON.stringify({
-                laborando: false,
-                telefono: '584121234567',
-                precio: '10',
-                horaInicio: '10:00',
-                horaFin: '20:00',
-                ultimoDiaReinicio: ''
-            }));
-        }
-        if (!localStorage.getItem('titibarber_citas')) {
-            localStorage.setItem('titibarber_citas', JSON.stringify([]));
-        }
-        if (!localStorage.getItem('titibarber_galeria')) {
-            localStorage.setItem('titibarber_galeria', JSON.stringify([]));
-        }
+        let configGlobal = { laborando: false, telefono: '584121234567', precio: '10', horaInicio: '10:00', horaFin: '20:00' };
+        let citasGlobal = [];
+        let galeriaGlobal = [];
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             document.getElementById('inputEnlaceCompartir').value = window.location.href;
+            await cargarDatosDesdeSupabase();
             comprobarReinicioMedianoche();
-            cargarConfiguracionInterfaz();
-            generarOpcionesHoras();
             renderizarGaleriaCliente();
         });
 
-        // REINICIO AUTOMÁTICO DE CITAS Y ESTADO A LAS 12:00 AM (MEDIANOCHE / FINAL DEL DÍA)
-        function comprobarReinicioMedianoche() {
+        async function cargarDatosDesdeSupabase() {
+            // Cargar Configuración
+            let { data: configData } = await supabaseClient.from('config_barber').select('*').eq('id', 1).single();
+            if (configData) {
+                configGlobal = configData;
+            }
+
+            // Cargar Citas
+            let { data: citasData } = await supabaseClient.from('citas_barber').select('*');
+            if (citasData) {
+                citasGlobal = citasData;
+            }
+
+            // Cargar Galería
+            let { data: galeriaData } = await supabaseClient.from('galeria_cortes').select('*').order('id', { ascending: false });
+            if (galeriaData) {
+                galeriaGlobal = galeriaData;
+            }
+
+            aplicarConfiguracionInterfaz();
+            generarOpcionesHoras();
+        }
+
+        async function comprobarReinicioMedianoche() {
             const ahora = new Date();
             const fechaHoyStr = ahora.toISOString().split('T')[0];
-            let config = JSON.parse(localStorage.getItem('titibarber_config'));
 
-            if (config.ultimoDiaReinicio !== fechaHoyStr) {
-                localStorage.setItem('titibarber_citas', JSON.stringify([]));
-                config.laborando = false;
-                config.ultimoDiaReinicio = fechaHoyStr;
-                localStorage.setItem('titibarber_config', JSON.stringify(config));
+            if (configGlobal.ultimo_dia_reinicio !== fechaHoyStr) {
+                await supabaseClient.from('citas_barber').delete().neq('id', 0); // Borra todas las citas del día anterior
+                citasGlobal = [];
+                configGlobal.laborando = false;
+                configGlobal.ultimo_dia_reinicio = fechaHoyStr;
+
+                await supabaseClient.from('config_barber').update({
+                    laborando: false,
+                    ultimo_dia_reinicio: fechaHoyStr
+                }).eq('id', 1);
             }
         }
 
@@ -363,16 +383,13 @@
             const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             document.getElementById('fechaActualTxt').innerText = hoy.toLocaleDateString('es-ES', opcionesFecha);
 
-            let config = JSON.parse(localStorage.getItem('titibarber_config'));
-            let citas = JSON.parse(localStorage.getItem('titibarber_citas'));
             let selectHora = document.getElementById('horaSeleccionada');
-
-            let horasOcupadas = citas
+            let horasOcupadas = citasGlobal
                 .filter(c => c.estado === 'Pendiente' || c.estado === 'Confirmada')
                 .map(c => c.hora);
 
-            let [hInicio, mInicio] = config.horaInicio.split(':').map(Number);
-            let [hFin, mFin] = config.horaFin.split(':').map(Number);
+            let [hInicio, mInicio] = (configGlobal.hora_inicio || '10:00').split(':').map(Number);
+            let [hFin, mFin] = (configGlobal.hora_fin || '20:00').split(':').map(Number);
 
             let opcionesHTML = '<option value="">Selecciona una hora disponible</option>';
             let horaActualMinutos = hInicio * 60 + mInicio;
@@ -442,7 +459,8 @@
             verCliente();
         }
 
-        function verCliente() {
+        async function verCliente() {
+            await cargarDatosDesdeSupabase();
             comprobarReinicioMedianoche();
             document.getElementById('vistaCliente').classList.remove('hidden');
             document.getElementById('vistaGaleriaCliente').classList.add('hidden');
@@ -452,7 +470,8 @@
             generarOpcionesHoras();
         }
 
-        function verGaleriaCliente() {
+        async function verGaleriaCliente() {
+            await cargarDatosDesdeSupabase();
             document.getElementById('vistaGaleriaCliente').classList.remove('hidden');
             document.getElementById('vistaCliente').classList.add('hidden');
             document.getElementById('vistaAdmin').classList.add('hidden');
@@ -460,11 +479,12 @@
             renderizarGaleriaCliente();
         }
 
-        function verAdmin() {
+        async function verAdmin() {
             if (!localStorage.getItem(SESSION_TOKEN_KEY)) {
                 verLoginAdmin();
                 return;
             }
+            await cargarDatosDesdeSupabase();
             comprobarReinicioMedianoche();
             document.getElementById('vistaAdmin').classList.remove('hidden');
             document.getElementById('vistaCliente').classList.add('hidden');
@@ -472,60 +492,55 @@
             document.getElementById('vistaLoginAdmin').classList.add('hidden');
             renderizarCitasAdmin();
             renderizarGaleriaAdmin();
-            cargarConfiguracionInterfaz();
+            aplicarConfiguracionInterfaz();
         }
 
-        function toggleLaborando() {
+        async function toggleLaborando() {
             const isChecked = document.getElementById('switchLaborando').checked;
-            let config = JSON.parse(localStorage.getItem('titibarber_config'));
-            config.laborando = isChecked;
-            localStorage.setItem('titibarber_config', JSON.stringify(config));
+            configGlobal.laborando = isChecked;
+            await supabaseClient.from('config_barber').update({ laborando: isChecked }).eq('id', 1);
             actualizarBannerEstado(isChecked);
         }
 
-        function guardarConfigAdmin() {
+        async function guardarConfigAdmin() {
             let tel = document.getElementById('inputTelefono').value;
-            let config = JSON.parse(localStorage.getItem('titibarber_config'));
-            config.telefono = tel;
-            localStorage.setItem('titibarber_config', JSON.stringify(config));
-            cargarConfiguracionInterfaz();
+            configGlobal.telefono = tel;
+            await supabaseClient.from('config_barber').update({ telefono: tel }).eq('id', 1);
+            aplicarConfiguracionInterfaz();
             alert("Teléfono actualizado.");
         }
 
-        function guardarPrecioAdmin() {
+        async function guardarPrecioAdmin() {
             let precioVal = document.getElementById('inputPrecio').value;
-            let config = JSON.parse(localStorage.getItem('titibarber_config'));
-            config.precio = precioVal;
-            localStorage.setItem('titibarber_config', JSON.stringify(config));
-            cargarConfiguracionInterfaz();
+            configGlobal.precio = precioVal;
+            await supabaseClient.from('config_barber').update({ precio: precioVal }).eq('id', 1);
+            aplicarConfiguracionInterfaz();
             alert("Precio actualizado.");
         }
 
-        function guardarHorarioAdmin() {
+        async function guardarHorarioAdmin() {
             let hIni = document.getElementById('inputHoraInicio').value;
             let hFin = document.getElementById('inputHoraFin').value;
-            let config = JSON.parse(localStorage.getItem('titibarber_config'));
-            config.horaInicio = hIni;
-            config.horaFin = hFin;
-            localStorage.setItem('titibarber_config', JSON.stringify(config));
+            configGlobal.hora_inicio = hIni;
+            configGlobal.hora_fin = hFin;
+            await supabaseClient.from('config_barber').update({ hora_inicio: hIni, hora_fin: hFin }).eq('id', 1);
             generarOpcionesHoras();
             alert("Horario guardado.");
         }
 
-        function cargarConfiguracionInterfaz() {
-            let config = JSON.parse(localStorage.getItem('titibarber_config'));
-            document.getElementById('switchLaborando').checked = config.laborando;
-            document.getElementById('inputTelefono').value = config.telefono;
-            document.getElementById('inputPrecio').value = config.precio || '10';
-            document.getElementById('inputHoraInicio').value = config.horaInicio || '10:00';
-            document.getElementById('inputHoraFin').value = config.horaFin || '20:00';
+        function aplicarConfiguracionInterfaz() {
+            document.getElementById('switchLaborando').checked = configGlobal.laborando;
+            document.getElementById('inputTelefono').value = configGlobal.telefono || '584121234567';
+            document.getElementById('inputPrecio').value = configGlobal.precio || '10';
+            document.getElementById('inputHoraInicio').value = configGlobal.hora_inicio || '10:00';
+            document.getElementById('inputHoraFin').value = configGlobal.hora_fin || '20:00';
             
-            let precioFinal = config.precio || '10';
+            let precioFinal = configGlobal.precio || '10';
             document.getElementById('lblPrecioCorte').innerText = `$${precioFinal} USD`;
             document.getElementById('lblTituloPago').innerText = `Datos de Pago Móvil ($${precioFinal})`;
-            document.getElementById('lblTelefonoBarbero').innerText = "+" + config.telefono;
-            document.getElementById('linkWhatsApp').href = `https://wa.me/${config.telefono}?text=Hola,%20adjunto%20mi%20comprobante.%20Mi%20nombre%20es%20[Tu%20Nombre]%20y%20mi%20hora%20es%20[Hora].`;
-            actualizarBannerEstado(config.laborando);
+            document.getElementById('lblTelefonoBarbero').innerText = "+" + (configGlobal.telefono || '584121234567');
+            document.getElementById('linkWhatsApp').href = `https://wa.me/${configGlobal.telefono || '584121234567'}?text=Hola,%20adjunto%20mi%20comprobante.%20Mi%20nombre%20es%20[Tu%20Nombre]%20y%20mi%20hora%20es%20[Hora].`;
+            actualizarBannerEstado(configGlobal.laborando);
         }
 
         function actualizarBannerEstado(laborando) {
@@ -539,7 +554,7 @@
             } else {
                 banner.className = "text-xs px-3.5 py-1 rounded-full font-bold bg-zinc-950 text-red-500 border border-red-900 uppercase tracking-wider shadow-inner";
                 banner.innerText = "● Barbero No Disponible";
-                bannerTop.className = "text-xs px-3.5 py-1.5 rounded-full font-bold bg-zinc-950 text-red-500 border border-red-900 uppercase tracking-wider shadow-inner";
+                bannerTop.className = "text-xs px-3.5 py-1 rounded-full font-bold bg-zinc-950 text-red-500 border border-red-900 uppercase tracking-wider shadow-inner";
                 bannerTop.innerText = "Cerrado";
             }
         }
@@ -552,7 +567,7 @@
         }
 
         // --- GESTIÓN DE GALERÍA DESDE ADMIN ---
-        document.getElementById('formSubirCorte').addEventListener('submit', function(e) {
+        document.getElementById('formSubirCorte').addEventListener('submit', async function(e) {
             e.preventDefault();
             const archivoInput = document.getElementById('inputArchivoFoto');
             const urlInput = document.getElementById('inputUrlFoto').value.trim();
@@ -560,40 +575,37 @@
 
             if (archivoInput.files && archivoInput.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function(event) {
-                    guardarFotoGaleria(event.target.result, titulo);
+                reader.onload = async function(event) {
+                    await guardarFotoGaleriaSupabase(event.target.result, titulo);
                 };
                 reader.readAsDataURL(archivoInput.files[0]);
             } else if (urlInput) {
-                guardarFotoGaleria(urlInput, titulo);
+                await guardarFotoGaleriaSupabase(urlInput, titulo);
             } else {
                 alert("Por favor selecciona una imagen de tu dispositivo o ingresa un enlace.");
             }
         });
 
-        function guardarFotoGaleria(imgSrc, titulo) {
-            let galeria = JSON.parse(localStorage.getItem('titibarber_galeria'));
+        async function guardarFotoGaleriaSupabase(imgSrc, titulo) {
             const nuevaFoto = { id: Date.now(), img: imgSrc, titulo: titulo };
-            galeria.unshift(nuevaFoto);
-            localStorage.setItem('titibarber_galeria', JSON.stringify(galeria));
-
+            await supabaseClient.from('galeria_cortes').insert([nuevaFoto]);
+            
             document.getElementById('formSubirCorte').reset();
             alert("¡Corte publicado con éxito en la galería!");
+            await cargarDatosDesdeSupabase();
             renderizarGaleriaAdmin();
             renderizarGaleriaCliente();
         }
 
         function renderizarGaleriaAdmin() {
             const contenedor = document.getElementById('listaGaleriaAdmin');
-            let galeria = JSON.parse(localStorage.getItem('titibarber_galeria'));
-
-            if (galeria.length === 0) {
+            if (galeriaGlobal.length === 0) {
                 contenedor.innerHTML = `<p class="text-xs text-amber-600 italic col-span-2">No hay fotos publicadas.</p>`;
                 return;
             }
 
             contenedor.innerHTML = '';
-            galeria.forEach(item => {
+            galeriaGlobal.forEach(item => {
                 const div = document.createElement('div');
                 div.className = "bg-black p-3 rounded-xl border border-gold flex items-center justify-between gap-3 shadow-inner";
                 div.innerHTML = `
@@ -609,15 +621,13 @@
 
         function renderizarGaleriaCliente() {
             const contenedor = document.getElementById('gridGaleriaPublica');
-            let galeria = JSON.parse(localStorage.getItem('titibarber_galeria'));
-
-            if (galeria.length === 0) {
+            if (galeriaGlobal.length === 0) {
                 contenedor.innerHTML = `<p class="text-xs text-amber-600 italic col-span-2 text-center py-6">El barbero aún no ha publicado fotos en la galería.</p>`;
                 return;
             }
 
             contenedor.innerHTML = '';
-            galeria.forEach(item => {
+            galeriaGlobal.forEach(item => {
                 const div = document.createElement('div');
                 div.className = "bg-zinc-950 p-4 rounded-2xl border border-gold space-y-3 shadow-inner group";
                 div.innerHTML = `
@@ -633,19 +643,19 @@
             });
         }
 
-        function eliminarFotoGaleria(id) {
+        async function eliminarFotoGaleria(id) {
             if (confirm("¿Estás seguro de eliminar este corte de la galería?")) {
-                let galeria = JSON.parse(localStorage.getItem('titibarber_galeria')).filter(item => item.id !== id);
-                localStorage.setItem('titibarber_galeria', JSON.stringify(galeria));
+                await supabaseClient.from('galeria_cortes').delete().eq('id', id);
+                await cargarDatosDesdeSupabase();
                 renderizarGaleriaAdmin();
                 renderizarGaleriaCliente();
             }
         }
 
-        document.getElementById('formReserva').addEventListener('submit', function(e) {
+        document.getElementById('formReserva').addEventListener('submit', async function(e) {
             e.preventDefault();
-            let config = JSON.parse(localStorage.getItem('titibarber_config'));
-            if (!config.laborando) {
+            await cargarDatosDesdeSupabase();
+            if (!configGlobal.laborando) {
                 alert("El barbero no está laborando actualmente.");
                 return;
             }
@@ -653,21 +663,19 @@
             const nombre = document.getElementById('nombreCliente').value.trim();
             const hora = document.getElementById('horaSeleccionada').value;
 
-            let citas = JSON.parse(localStorage.getItem('titibarber_citas'));
-            if (citas.some(c => c.hora === hora && (c.estado === 'Pendiente' || c.estado === 'Confirmada'))) {
+            if (citasGlobal.some(c => c.hora === hora && (c.estado === 'Pendiente' || c.estado === 'Confirmada'))) {
                 alert("Lo sentimos, esta hora acaba de ser ocupada.");
                 generarOpcionesHoras();
                 return;
             }
 
             const nuevaCita = { id: Date.now(), nombre, hora, estado: "Pendiente" };
-            citas.push(nuevaCita);
-            localStorage.setItem('titibarber_citas', JSON.stringify(citas));
+            await supabaseClient.from('citas_barber').insert([nuevaCita]);
 
             alert("¡Cita solicitada con éxito! Queda a la espera de confirmación.");
             document.getElementById('formReserva').reset();
+            await cargarDatosDesdeSupabase();
             generarOpcionesHoras();
-            renderizarCitasAdmin();
             renderizarMisCitasCliente();
         });
 
@@ -684,15 +692,13 @@
 
         function renderizarMisCitasCliente() {
             const contenedor = document.getElementById('listaMisCitas');
-            let citas = JSON.parse(localStorage.getItem('titibarber_citas'));
-
-            if (citas.length === 0) {
+            if (citasGlobal.length === 0) {
                 contenedor.innerHTML = `<p class="text-xs text-amber-600 italic">No tienes solicitudes registradas.</p>`;
                 return;
             }
 
             contenedor.innerHTML = '';
-            citas.forEach(cita => {
+            citasGlobal.forEach(cita => {
                 let badgeClass = "bg-amber-500/10 text-amber-400 border-gold";
                 let textoEstado = "⏳ En espera de confirmación";
 
@@ -719,17 +725,15 @@
 
         function renderizarCitasAdmin() {
             const contenedor = document.getElementById('listaCitasAdmin');
-            let citas = JSON.parse(localStorage.getItem('titibarber_citas'));
-
-            if (citas.length === 0) {
+            if (citasGlobal.length === 0) {
                 contenedor.innerHTML = `<p class="text-xs text-amber-600 italic">No hay citas registradas.</p>`;
                 return;
             }
 
-            citas.sort((a, b) => convertirHoraAMinutos(a.hora) - convertirHoraAMinutos(b.hora));
+            citasGlobal.sort((a, b) => convertirHoraAMinutos(a.hora) - convertirHoraAMinutos(b.hora));
 
             contenedor.innerHTML = '';
-            citas.forEach(cita => {
+            citasGlobal.forEach(cita => {
                 let estadoColor = "text-amber-400";
                 if (cita.estado === "Confirmada") estadoColor = "text-emerald-400";
                 if (cita.estado === "Rechazada") estadoColor = "text-red-500";
@@ -753,18 +757,17 @@
             });
         }
 
-        function cambiarEstado(id, nuevoEstado) {
-            let citas = JSON.parse(localStorage.getItem('titibarber_citas'));
-            citas = citas.map(c => { if (c.id === id) c.estado = nuevoEstado; return c; });
-            localStorage.setItem('titibarber_citas', JSON.stringify(citas));
+        async function cambiarEstado(id, nuevoEstado) {
+            await supabaseClient.from('citas_barber').update({ estado: nuevoEstado }).eq('id', id);
+            await cargarDatosDesdeSupabase();
             generarOpcionesHoras();
             renderizarCitasAdmin();
             renderizarMisCitasCliente();
         }
 
-        function eliminarCita(id) {
-            let citas = JSON.parse(localStorage.getItem('titibarber_citas')).filter(c => c.id !== id);
-            localStorage.setItem('titibarber_citas', JSON.stringify(citas));
+        async function eliminarCita(id) {
+            await supabaseClient.from('citas_barber').delete().eq('id', id);
+            await cargarDatosDesdeSupabase();
             generarOpcionesHoras();
             renderizarCitasAdmin();
             renderizarMisCitasCliente();
