@@ -354,7 +354,7 @@
                     .select('*')
                     .eq('id', 1)
                     .single();
-                
+            
                 if (configData) {
                     configCache = {
                         laborando: configData.laborando,
@@ -371,7 +371,7 @@
                     .from('citas')
                     .select('*')
                     .order('id', { ascending: true });
-                
+            
                 if (citasData) {
                     citasCache = citasData;
                 }
@@ -381,7 +381,7 @@
                     .from('galeria')
                     .select('*')
                     .order('id', { ascending: false });
-                
+            
                 if (galeriaData) {
                     galeriaCache = galeriaData;
                 }
@@ -513,302 +513,20 @@
             renderizarGaleriaCliente();
         }
 
-        async function verAdmin() {
-            if (!localStorage.getItem(SESSION_TOKEN_KEY)) {
-                verLoginAdmin();
-                return;
-            }
-            await sincronizarDatosSupabase();
-            document.getElementById('vistaAdmin').classList.remove('hidden');
-            document.getElementById('vistaCliente').classList.add('hidden');
-            document.getElementById('vistaGaleriaCliente').classList.add('hidden');
-            document.getElementById('vistaLoginAdmin').classList.add('hidden');
-            renderizarCitasAdmin();
-            renderizarGaleriaAdmin();
-            cargarConfiguracionInterfaz();
-        }
-
-        async function toggleLaborando() {
-            const isChecked = document.getElementById('switchLaborando').checked;
-            configCache.laborando = isChecked;
-            
-            await supabaseClient.from('configuracion').update({ laborando: isChecked }).eq('id', 1);
-            actualizarBannerEstado(isChecked);
-        }
-
-        async function guardarConfigAdmin() {
-            let tel = document.getElementById('inputTelefono').value.trim();
-            configCache.telefono = tel;
-            
-            await supabaseClient.from('configuracion').update({ telefono: tel }).eq('id', 1);
-            cargarConfiguracionInterfaz();
-            alert("Teléfono actualizado con éxito en la nube.");
-        }
-
-        async function guardarPrecioAdmin() {
-            let precio = document.getElementById('inputPrecio').value;
-            configCache.precio = precio;
-            
-            await supabaseClient.from('configuracion').update({ precio: precio }).eq('id', 1);
-            cargarConfiguracionInterfaz();
-            alert("Precio actualizado con éxito en la nube.");
-        }
-
-        async function guardarHorarioAdmin() {
-            let inicio = document.getElementById('inputHoraInicio').value;
-            let fin = document.getElementById('inputHoraFin').value;
-            configCache.horaInicio = inicio;
-            configCache.horaFin = fin;
-            
-            await supabaseClient.from('configuracion').update({ hora_inicio: inicio, hora_fin: fin }).eq('id', 1);
-            generarOpcionesHoras();
-            alert("Horario actualizado con éxito en la nube.");
-        }
-
-        function cargarConfiguracionInterfaz() {
-            document.getElementById('switchLaborando').checked = configCache.laborando;
-            document.getElementById('inputTelefono').value = configCache.telefono;
-            document.getElementById('inputPrecio').value = configCache.precio;
-            document.getElementById('inputHoraInicio').value = configCache.horaInicio;
-            document.getElementById('inputHoraFin').value = configCache.horaFin;
-            document.getElementById('lblPrecioCorte').innerText = `$${configCache.precio} USD`;
-            document.getElementById('lblTituloPago').innerText = `Datos de Pago Móvil ($${configCache.precio})`;
-            document.getElementById('lblTelefonoBarbero').innerText = `+58 ${configCache.telefono}`;
-            
-            let telClean = configCache.telefono.replace(/\D/g, '');
-            document.getElementById('linkWhatsApp').href = `https://wa.me/${telClean}?text=Hola%20Titi%20Barber,%20te%20envío%20el%20comprobante%20de%20pago%20móvil%20de%20mi%20cita.`;
-
-            actualizarBannerEstado(configCache.laborando);
-        }
-
-        function actualizarBannerEstado(laborando) {
-            let bannerTop = document.getElementById('estadoBarberoBannerTop');
-            let bannerCliente = document.getElementById('estadoBarberoBanner');
-
-            if (laborando) {
-                bannerTop.innerText = "Abierto";
-                bannerTop.className = "text-xs px-3.5 py-1.5 rounded-full font-bold bg-zinc-950 text-emerald-400 border border-emerald-900 uppercase tracking-widest shadow-inner";
-                
-                bannerCliente.innerText = "🟢 Barbero Disponible - ¡Agenda tu Cita!";
-                bannerCliente.className = "text-xs px-3.5 py-1 rounded-full font-bold bg-zinc-950 text-emerald-400 border border-emerald-900 uppercase tracking-wider";
-            } else {
-                bannerTop.innerText = "Cerrado";
-                bannerTop.className = "text-xs px-3.5 py-1.5 rounded-full font-bold bg-zinc-950 text-red-500 border border-red-900 uppercase tracking-widest shadow-inner";
-                
-                bannerCliente.innerText = "🔴 Barbero No Disponible (Cerrado)";
-                bannerCliente.className = "text-xs px-3.5 py-1 rounded-full font-bold bg-zinc-950 text-red-500 border border-red-900 uppercase tracking-wider";
-            }
-        }
-
-        document.getElementById('formReserva').addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            if (!configCache.laborando) {
-                alert("Lo sentimos, el barbero se encuentra cerrado y no está recibiendo citas en este momento.");
-                return;
-            }
-
-            let nombre = document.getElementById('nombreCliente').value.trim();
-            let hora = document.getElementById('horaSeleccionada').value;
-
-            if (!hora) {
-                alert("Por favor selecciona una hora.");
-                return;
-            }
-
-            let nuevaCita = {
-                id: Date.now(),
-                nombre: nombre,
-                hora: hora,
-                estado: 'Pendiente'
-            };
-
-            let { error } = await supabaseClient.from('citas').insert([nuevaCita]);
-            if (error) {
-                alert("Error al guardar la cita en Supabase: " + error.message);
-                return;
-            }
-
-            citasCache.push(nuevaCita);
-
-            let misIds = JSON.parse(localStorage.getItem('titibarber_mis_ids') || '[]');
-            misIds.push(nuevaCita.id);
-            localStorage.setItem('titibarber_mis_ids', JSON.stringify(misIds));
-
-            document.getElementById('formReserva').reset();
-            alert("¡Cita solicitada con éxito en la nube! No olvides enviar tu comprobante por WhatsApp.");
-            generarOpcionesHoras();
-            renderizarMisCitasCliente();
-        });
-
-        function renderizarMisCitasCliente() {
-            let contenedor = document.getElementById('listaMisCitas');
-            let misIds = JSON.parse(localStorage.getItem('titibarber_mis_ids') || '[]');
-            let misCitas = citasCache.filter(c => misIds.includes(c.id));
-
-            if (misCitas.length === 0) {
-                contenedor.innerHTML = `<p class="text-xs text-amber-600 italic">No tienes solicitudes registradas en este dispositivo.</p>`;
-                return;
-            }
-
-            let html = '';
-            misCitas.forEach(c => {
-                let badgeColor = c.estado === 'Confirmada' ? 'text-emerald-400 bg-emerald-950/40 border-emerald-900' : 'text-amber-400 bg-amber-950/40 border-amber-900';
-                html += `
-                    <div class="p-3.5 bg-zinc-950 rounded-xl border border-gold flex justify-between items-center gap-3 shadow-inner">
-                        <div>
-                            <p class="text-xs font-bold text-amber-100">${c.nombre}</p>
-                            <p class="text-[11px] text-amber-400">Hora: <strong>${c.hora}</strong></p>
-                        </div>
-                        <span class="text-[10px] px-2.5 py-1 rounded-md font-bold uppercase border ${badgeColor}">${c.estado}</span>
-                    </div>
-                `;
-            });
-            contenedor.innerHTML = html;
-        }
-
-        function renderizarCitasAdmin() {
-            let contenedor = document.getElementById('listaCitasAdmin');
-
-            if (citasCache.length === 0) {
-                contenedor.innerHTML = `<p class="text-xs text-amber-600 italic">No hay citas registradas.</p>`;
-                return;
-            }
-
-            let html = '';
-            citasCache.forEach(c => {
-                html += `
-                    <div class="p-3.5 bg-zinc-950 rounded-xl border border-gold flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-inner">
-                        <div>
-                            <p class="text-xs font-bold text-amber-200">Cliente: <span class="text-white">${c.nombre}</span></p>
-                            <p class="text-xs text-amber-400">Hora: <strong>${c.hora}</strong></p>
-                            <p class="text-[10px] text-zinc-400">Estado: <span class="font-bold text-amber-300">${c.estado}</span></p>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <button onclick="cambiarEstadoCita(${c.id}, 'Confirmada')" class="px-3 py-1.5 bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-800 text-[11px] font-bold rounded-lg transition cursor-pointer">Confirmar ✓</button>
-                            <button onclick="eliminarCita(${c.id})" class="px-3 py-1.5 bg-red-950 hover:bg-red-900 text-red-300 border border-red-800 text-[11px] font-bold rounded-lg transition cursor-pointer">Eliminar ✕</button>
-                        </div>
-                    </div>
-                `;
-            });
-            contenedor.innerHTML = html;
-        }
-
-        async function cambiarEstadoCita(id, nuevoEstado) {
-            await supabaseClient.from('citas').update({ estado: nuevoEstado }).eq('id', id);
-            await sincronizarDatosSupabase();
-            renderizarCitasAdmin();
-        }
-
-        async function eliminarCita(id) {
-            if (!confirm("¿Seguro que deseas eliminar esta cita?")) return;
-            await supabaseClient.from('citas').delete().eq('id', id);
-            await sincronizarDatosSupabase();
-            renderizarCitasAdmin();
-            generarOpcionesHoras();
-        }
-
-        // GESTIÓN DE GALERÍA
-        document.getElementById('formSubirCorte').addEventListener('submit', function(e) {
-            e.preventDefault();
-            let titulo = document.getElementById('inputTituloFoto').value.trim();
-            let urlInput = document.getElementById('inputUrlFoto').value.trim();
-            let archivoInput = document.getElementById('inputArchivoFoto');
-
-            if (archivoInput.files && archivoInput.files[0]) {
-                let reader = new FileReader();
-                reader.onload = async function(eUpload) {
-                    await guardarFotoGaleria(titulo, eUpload.target.result);
-                }
-                reader.readAsDataURL(archivoInput.files[0]);
-            } else if (urlInput) {
-                guardarFotoGaleria(titulo, urlInput);
-            } else {
-                alert("Por favor selecciona una imagen local o ingresa una URL.");
-            }
-        });
-
-        async function guardarFotoGaleria(titulo, imagenUrl) {
-            let nuevaFoto = {
-                id: Date.now(),
-                titulo: titulo || 'Corte Estilo Libre',
-                imagen: imagenUrl
-            };
-
-            let { error } = await supabaseClient.from('galeria').insert([nuevaFoto]);
-            if (error) {
-                alert("Error al subir la foto a Supabase: " + error.message);
-                return;
-            }
-
-            await sincronizarDatosSupabase();
-            document.getElementById('formSubirCorte').reset();
-            renderizarGaleriaAdmin();
-            renderizarGaleriaCliente();
-            alert("¡Corte publicado con éxito en la nube!");
-        }
-
-        function renderizarGaleriaAdmin() {
-            let contenedor = document.getElementById('listaGaleriaAdmin');
-
-            if (galeriaCache.length === 0) {
-                contenedor.innerHTML = `<p class="text-xs text-amber-600 italic col-span-2">No hay fotos publicadas.</p>`;
-                return;
-            }
-
-            let html = '';
-            galeriaCache.forEach(item => {
-                html += `
-                    <div class="bg-black p-2.5 rounded-xl border border-gold flex items-center justify-between gap-3">
-                        <div class="flex items-center gap-2 overflow-hidden">
-                            <img src="${item.imagen}" class="w-10 h-10 object-cover rounded-lg border border-gold shrink-0">
-                            <p class="text-xs font-bold text-amber-200 truncate">${item.titulo}</p>
-                        </div>
-                        <button onclick="eliminarFotoGaleria(${item.id})" class="px-2.5 py-1 bg-red-950 text-red-400 hover:bg-red-900 border border-red-900 rounded-lg text-[10px] font-bold transition shrink-0 cursor-pointer">Eliminar</button>
-                    </div>
-                `;
-            });
-            contenedor.innerHTML = html;
-        }
-
-        async function eliminarFotoGaleria(id) {
-            if (!confirm("¿Deseas eliminar esta foto de la galería?")) return;
-            await supabaseClient.from('galeria').delete().eq('id', id);
-            await sincronizarDatosSupabase();
-            renderizarGaleriaAdmin();
-            renderizarGaleriaCliente();
-        }
-
-        function renderizarGaleriaCliente() {
-            let contenedor = document.getElementById('gridGaleriaPublica');
-
-            if (galeriaCache.length === 0) {
-                contenedor.innerHTML = `<p class="text-xs text-amber-600 italic col-span-2 text-center py-6">El barbero aún no ha publicado fotos en la galería.</p>`;
-                return;
-            }
-
-            let html = '';
-            galeriaCache.forEach(item => {
-                html += `
-                    <div class="bg-zinc-950 p-3 rounded-2xl border border-gold space-y-3 shadow-inner">
-                        <div class="overflow-hidden rounded-xl border border-gold/60 h-64">
-                            <img src="${item.imagen}" alt="${item.titulo}" class="w-full h-full object-cover hover:scale-105 transition duration-300">
-                        </div>
-                        <div class="px-1 pb-1">
-                            <h4 class="font-bold text-amber-200 text-xs uppercase tracking-wider">${item.titulo}</h4>
-                        </div>
-                    </div>
-                `;
-            });
-            contenedor.innerHTML = html;
-        }
-
         function copiarEnlace() {
             let input = document.getElementById('inputEnlaceCompartir');
             input.select();
             document.execCommand('copy');
             alert("¡Enlace copiado al portapapeles!");
         }
+
+        // --- BLOQUE DE TIEMPO REAL (REALTIME) AÑADIDO ---
+        supabaseClient
+          .channel('public-changes')
+          .on('postgres_changes', { event: '*', schema: 'public' }, async (payload) => {
+              await sincronizarDatosSupabase();
+          })
+          .subscribe();
     </script>
 </body>
 </html>
