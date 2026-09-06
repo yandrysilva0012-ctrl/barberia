@@ -3,774 +3,546 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Titi Barber | Agenda tu Cita</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title>Titi Barber - Sistema de Citas</title>
+    <!-- Tailwind CSS para el diseño -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body {
-            background-color: #000000 !important;
-        }
-        .text-gold {
-            background: linear-gradient(135deg, #fef08a 0%, #eab308 50%, #ca8a04 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .border-gold {
-            border-color: rgba(234, 179, 8, 0.45);
-        }
-        .bg-gold-gradient {
-            background: linear-gradient(135deg, #fde047 0%, #eab308 50%, #b45309 100%);
-        }
-        .bg-gold-gradient:hover {
-            background: linear-gradient(135deg, #fef08a 0%, #ca8a04 50%, #92400e 100%);
-        }
-        .shadow-gold {
-            box-shadow: 0 0 30px rgba(234, 179, 8, 0.18);
-        }
+        .border-gold { border-color: #d4af37; }
+        .bg-gold { background-color: #d4af37; }
+        .text-gold { color: #d4af37; }
     </style>
 </head>
-<body class="bg-black text-amber-100 font-sans min-h-screen selection:bg-amber-500 selection:text-black">
+<body class="bg-zinc-950 text-zinc-100 font-sans antialiased min-h-screen flex flex-col justify-between">
 
-    <!-- Menú Superior Profesional -->
-    <header class="bg-black border-b border-gold p-4 sticky top-0 z-50 flex justify-between items-center shadow-gold">
-        <div class="flex items-center space-x-3">
-            <button onclick="toggleMenu()" class="p-2.5 rounded-xl bg-zinc-950 hover:bg-zinc-900 transition text-amber-400 border border-gold focus:outline-none cursor-pointer shadow-sm">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                </svg>
-            </button>
-            <div class="flex items-center gap-3">
-                <h1 class="text-lg font-black tracking-widest text-gold uppercase">Titi Barber</h1>
+    <!-- HEADER / NAVEGACIÓN -->
+    <header class="border-b border-zinc-800 bg-black/80 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <span class="text-xl font-black text-amber-400 tracking-wider">TITI BARBER</span>
             </div>
-        </div>
-        <div id="estadoBarberoBannerTop" class="text-xs px-3.5 py-1.5 rounded-full font-bold bg-zinc-950 text-red-500 border border-red-900 uppercase tracking-widest shadow-inner">
-            Cerrado
+            <div class="flex items-center gap-3">
+                <span id="estadoBarberoBannerTop" class="text-xs px-3.5 py-1.5 rounded-full font-bold bg-zinc-950 text-emerald-400 border border-emerald-900 uppercase tracking-widest shadow-inner">
+                    Cargando...
+                </span>
+                <button onclick="toggleAdminModal()" class="text-xs px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-lg font-semibold transition cursor-pointer">
+                    Admin ⚙️
+                </button>
+            </div>
         </div>
     </header>
 
-    <!-- Menú Desplegable (Sidebar Izquierdo) -->
-    <div id="sidebar" class="fixed inset-y-0 left-0 w-72 bg-black border-r border-gold z-50 transform -translate-x-full transition-transform duration-300 ease-in-out p-6 flex flex-col justify-between shadow-2xl">
-        <div class="space-y-6">
-            <div class="flex justify-between items-center border-b border-gold pb-4">
-                <div class="flex items-center gap-2">
-                    <span class="text-amber-400 font-black text-sm uppercase tracking-wider">Menú Principal</span>
-                </div>
-                <button onclick="toggleMenu()" class="text-amber-500 hover:text-white font-bold text-2xl cursor-pointer">&times;</button>
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="max-w-4xl mx-auto px-4 py-6 space-y-8 w-full flex-grow">
+
+        <!-- ESTADO Y HORARIO / BANNER -->
+        <section class="bg-zinc-900/50 border border-gold/40 rounded-2xl p-5 shadow-lg flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="space-y-1 text-center sm:text-left">
+                <span id="estadoBarberoBanner" class="text-xs px-3.5 py-1 rounded-full font-bold bg-zinc-950 text-amber-400 border border-amber-900 uppercase tracking-wider">
+                    Verificando estado...
+                </span>
+                <h2 class="text-xl font-extrabold text-amber-100 pt-2">Reserva tu espacio</h2>
+                <p class="text-xs text-zinc-400">Asegura tu corte de cabello con el mejor estilo.</p>
             </div>
-            <nav class="space-y-2.5">
-                <button onclick="verCliente(); toggleMenu();" class="w-full text-left px-4 py-3 rounded-xl bg-zinc-950 hover:bg-zinc-900 transition font-bold text-xs text-amber-300 border border-gold cursor-pointer flex items-center gap-3">📅 Agendar Cita</button>
-                <button onclick="verGaleriaCliente(); toggleMenu();" class="w-full text-left px-4 py-3 rounded-xl bg-zinc-950 hover:bg-zinc-900 transition font-bold text-xs text-amber-300 border border-gold cursor-pointer flex items-center gap-3">✂️ Ver Galería de Cortes</button>
-                <button onclick="gestionarAccesoAdmin(); toggleMenu();" class="w-full text-left px-4 py-3 rounded-xl bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition font-bold text-xs border border-gold cursor-pointer flex items-center gap-3" id="btnMenuAdmin">🔒 Panel Administrador</button>
-            </nav>
-        </div>
-        <div class="text-[11px] text-amber-600/80 text-center border-t border-zinc-900 pt-4 font-semibold uppercase tracking-widest">
-            Titi Barber &copy; 2026
-        </div>
-    </div>
+            <div class="text-right flex flex-col items-center sm:items-end gap-1">
+                <span class="text-xs text-zinc-400">Tarifa del Corte:</span>
+                <span id="lblPrecioCorte" class="text-lg font-black text-amber-400">$10 USD</span>
+            </div>
+        </section>
 
-    <!-- Overlay oscuro -->
-    <div id="overlay" onclick="toggleMenu()" class="fixed inset-0 bg-black/85 z-40 hidden transition-opacity backdrop-blur-xs"></div>
-
-    <main class="max-w-3xl mx-auto p-4 md:p-6 space-y-6">
-
-        <!-- ================= VISTA CLIENTE (AGENDAR) ================= -->
-        <section id="vistaCliente" class="space-y-6">
+        <!-- SECCIÓN DE RESERVA Y MIS CITAS -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            <!-- Banner Principal con el Logo Oficial -->
-            <div class="bg-black p-6 md:p-10 rounded-3xl border border-gold text-center shadow-gold space-y-5 relative overflow-hidden">
-                <div class="absolute -top-32 -right-32 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
-                <div class="absolute -bottom-32 -left-32 w-64 h-64 bg-amber-600/10 rounded-full blur-3xl pointer-events-none"></div>
-
-                <div class="flex justify-center mb-2">
-                    <div class="p-2 bg-zinc-950 rounded-2xl border border-gold shadow-2xl inline-block">
-                        <img src="Gemini_Generated_Image_2upozu2upozu2upo.jpg" alt="Titi Barber Logo Oficial" class="w-44 h-44 md:w-56 md:h-56 object-cover rounded-xl border border-gold/60 shadow-inner" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=500&auto=format&fit=crop&q=80';">
-                    </div>
-                </div>
-
-                <span class="text-[11px] uppercase tracking-widest px-4 py-1.5 rounded-full bg-amber-500/10 text-amber-400 font-bold border border-gold inline-block shadow-inner">✨ Reserva Exclusiva &bull; Ven y Asicalate</span>
-                
-                <h2 class="text-2xl md:text-3xl font-black tracking-tight text-gold">Agenda tu Turno</h2>
-                <div class="flex justify-center pt-1">
-                    <p id="estadoBarberoBanner" class="text-xs px-3.5 py-1 rounded-full font-bold bg-zinc-950 text-red-500 border border-red-900 uppercase tracking-wider">Barbero no disponible</p>
-                </div>
-                
-                <div class="flex flex-wrap justify-center gap-3 pt-2">
-                    <div class="inline-flex items-center gap-2 bg-zinc-950 px-4 py-2 rounded-xl border border-gold text-xs text-amber-200/80 shadow-inner">
-                        <span>📅 Fecha de Hoy:</span>
-                        <span id="fechaActualTxt" class="font-bold text-amber-400">--/--/----</span>
-                    </div>
-                    <button onclick="verGaleriaCliente()" class="inline-flex items-center gap-2 bg-gold-gradient text-black px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider shadow-gold hover:opacity-95 transition cursor-pointer">
-                        ✂️ Ver Galería de Cortes
-                    </button>
-                </div>
-            </div>
-
             <!-- Formulario de Reserva -->
-            <div class="bg-black p-6 md:p-8 rounded-3xl border border-gold shadow-gold space-y-6">
-                <h3 class="text-base font-bold text-amber-400 border-b border-gold pb-3 flex items-center justify-between uppercase tracking-wider">
-                    <span>Detalles de la Reserva</span>
-                    <span id="lblPrecioCorte" class="text-gold font-black">$10 USD</span>
-                </h3>
-
-                <form id="formReserva" class="space-y-5">
+            <section class="bg-zinc-900/40 border border-gold/30 rounded-2xl p-5 shadow-lg space-y-4">
+                <h3 class="text-sm font-bold text-amber-300 uppercase tracking-wider border-b border-zinc-800 pb-2">Agendar Cita</h3>
+                <form id="formReserva" class="space-y-4">
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-amber-400/80 mb-2">Tu Nombre y Apellido:</label>
-                        <input type="text" id="nombreCliente" required placeholder="Ej. Carlos Mendoza" class="w-full p-3.5 rounded-xl bg-zinc-950 border border-gold text-amber-100 placeholder-amber-700/50 focus:outline-none focus:border-amber-400 text-sm transition shadow-inner">
+                        <label class="block text-xs font-semibold text-zinc-300 mb-1">Tu Nombre y Apellido</label>
+                        <input type="text" id="nombreCliente" required placeholder="Ej. Carlos Pérez" class="w-full bg-black border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs text-zinc-100 focus:outline-none focus:border-amber-400">
                     </div>
-                    
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-amber-400/80 mb-2">Selecciona la Hora:</label>
-                        <select id="horaSeleccionada" required class="w-full p-3.5 rounded-xl bg-zinc-950 border border-gold text-amber-400 font-bold focus:outline-none focus:border-amber-400 text-sm transition shadow-inner">
-                            <option value="">Cargando horas...</option>
+                        <label class="block text-xs font-semibold text-zinc-300 mb-1">Selecciona la Hora</label>
+                        <select id="horaSeleccionada" required class="w-full bg-black border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs text-zinc-100 focus:outline-none focus:border-amber-400">
+                            <option value="">Cargando horarios...</option>
                         </select>
-                        <p class="text-[11px] text-amber-600 mt-1.5 font-medium">Las horas marcadas en <span class="text-red-500 font-bold">rojo</span> ya se encuentran ocupadas.</p>
                     </div>
-
-                    <!-- Datos de Pago Móvil -->
-                    <div class="p-4 bg-zinc-950 rounded-2xl border border-gold space-y-4 shadow-inner">
-                        <div class="flex justify-between items-center">
-                            <h4 id="lblTituloPago" class="font-bold text-amber-400 text-xs uppercase tracking-wider">Datos de Pago Móvil ($10)</h4>
-                            <span class="text-[10px] bg-black text-amber-400 px-2.5 py-1 rounded-md font-bold border border-gold">Tasa Fija</span>
-                        </div>
-                        <p class="text-xs text-amber-200/70 leading-relaxed">Realiza tu pago móvil con los siguientes datos y escanea el código QR.</p>
-                        
-                        <div class="flex flex-col sm:flex-row items-center gap-4 bg-black p-4 rounded-xl border border-gold/60">
-                            <div class="bg-white p-2 rounded-xl shadow-md shrink-0">
-                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=PagoMovilTitiBarber" alt="QR Pago Móvil" class="w-24 h-24">
-                            </div>
-                            <div class="text-xs space-y-1.5 text-amber-200 w-full">
-                                <p><strong>Banco:</strong> Banco Mercantil (0105)</p>
-                                <p><strong>Cédula/RIF:</strong> V-12.345.678</p>
-                                <p><strong>Teléfono:</strong> <span id="lblTelefonoBarbero" class="text-amber-400 font-bold">+58 412-1234567</span></p>
-                                <a id="linkWhatsApp" href="#" target="_blank" class="inline-block mt-1 text-[11px] bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-gold px-3 py-1 rounded-lg font-bold transition">💬 Enviar Comprobante WhatsApp</a>
-                            </div>
-                        </div>
-
-                        <div class="bg-amber-500/10 border border-gold p-3 rounded-xl text-amber-300 text-xs font-semibold text-center shadow-inner">
-                            ⚠️ Cuando mandes el comprobante al WhatsApp pon tu nombre y la hora de la cita agendada.
-                        </div>
-                    </div>
-
-                    <button type="submit" class="w-full py-4 bg-gold-gradient text-black font-black uppercase tracking-wider rounded-xl transition cursor-pointer shadow-gold hover:opacity-95">Agendar Cita Ahora</button>
+                    <button type="submit" class="w-full py-3 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs uppercase tracking-widest rounded-xl transition cursor-pointer shadow-md">
+                        Solicitar Cita
+                    </button>
                 </form>
-            </div>
+            </section>
 
-            <!-- Mis Citas Solicitadas -->
-            <div class="bg-black p-6 md:p-8 rounded-3xl border border-gold shadow-gold space-y-4">
-                <h3 class="text-base font-bold text-amber-400 border-b border-gold pb-3 uppercase tracking-wider">Estado de mis Citas</h3>
-                <div id="listaMisCitas" class="space-y-3">
+            <!-- Mis Citas en este dispositivo -->
+            <section class="bg-zinc-900/40 border border-gold/30 rounded-2xl p-5 shadow-lg space-y-4">
+                <h3 class="text-sm font-bold text-amber-300 uppercase tracking-wider border-b border-zinc-800 pb-2">Mis Solicitudes</h3>
+                <div id="listaMisCitas" class="space-y-3 max-h-64 overflow-y-auto pr-1">
                     <p class="text-xs text-amber-600 italic">No tienes solicitudes registradas.</p>
                 </div>
+            </section>
+
+        </div>
+
+        <!-- DATOS DE PAGO MÓVIL -->
+        <section class="bg-zinc-900/40 border border-gold/30 rounded-2xl p-5 shadow-lg space-y-3">
+            <h3 id="lblTituloPago" class="text-sm font-bold text-amber-300 uppercase tracking-wider border-b border-zinc-800 pb-2">Datos de Pago Móvil</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div class="bg-black p-3 rounded-xl border border-zinc-800">
+                    <span class="text-zinc-500 block">Banco:</span>
+                    <strong class="text-amber-200">Banesco / Mercantil</strong>
+                </div>
+                <div class="bg-black p-3 rounded-xl border border-zinc-800">
+                    <span class="text-zinc-500 block">Teléfono:</span>
+                    <strong id="lblTelefonoBarbero" class="text-amber-200">+58 412-1234567</strong>
+                </div>
+                <div class="bg-black p-3 rounded-xl border border-zinc-800">
+                    <span class="text-zinc-500 block">Cédula / Rif:</span>
+                    <strong class="text-amber-200">V-XXXXXXXX</strong>
+                </div>
+            </div>
+            <div class="pt-2">
+                <a id="linkWhatsApp" href="#" target="_blank" class="block w-full text-center py-2.5 bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-800 text-xs font-bold rounded-xl uppercase tracking-wider transition">
+                    Enviar Comprobante por WhatsApp 📱
+                </a>
             </div>
         </section>
 
-        <!-- ================= VISTA GALERÍA DE CORTES (CLIENTES) ================= -->
-        <section id="vistaGaleriaCliente" class="space-y-6 hidden">
-            <div class="bg-black p-6 md:p-8 rounded-3xl border border-gold shadow-gold space-y-6">
-                <div class="flex justify-between items-center border-b border-gold pb-4 flex-wrap gap-3">
-                    <div>
-                        <h2 class="text-xl font-black text-gold uppercase tracking-wider">Galería de Trabajos</h2>
-                        <p class="text-xs text-amber-400/80 mt-0.5">Explora los mejores cortes y estilos realizados por Titi Barber.</p>
-                    </div>
-                    <button onclick="verCliente()" class="px-3.5 py-2 bg-zinc-950 hover:bg-zinc-900 text-xs rounded-xl font-bold text-amber-400 border border-gold transition cursor-pointer">← Volver a Agendar</button>
-                </div>
-
-                <!-- Cuadrícula de fotos públicas -->
-                <div id="gridGaleriaPublica" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <p class="text-xs text-amber-600 italic col-span-2 text-center py-6">El barbero aún no ha publicado fotos en la galería.</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- ================= VISTA LOGIN ADMIN ================= -->
-        <section id="vistaLoginAdmin" class="space-y-6 hidden">
-            <div class="bg-black p-6 md:p-8 rounded-3xl border border-gold shadow-gold max-w-md mx-auto space-y-6">
-                <div class="text-center space-y-2">
-                    <h2 class="text-2xl font-black text-gold uppercase tracking-wider">Acceso Barbero</h2>
-                    <p class="text-xs text-amber-400/80">Inicia sesión con tu cuenta autorizada</p>
-                </div>
-                <form id="formLoginAdmin" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-amber-400 mb-1.5">Correo Gmail:</label>
-                        <input type="email" id="emailAdmin" required placeholder="Ingresa tu correo de Gmail" class="w-full p-3.5 rounded-xl bg-zinc-950 border border-gold text-amber-100 placeholder-amber-700/60 text-sm focus:outline-none focus:border-amber-400 shadow-inner">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-amber-400 mb-1.5">Contraseña:</label>
-                        <input type="password" id="passAdmin" required placeholder="••••••••" class="w-full p-3.5 rounded-xl bg-zinc-950 border border-gold text-amber-100 placeholder-amber-700/60 text-sm focus:outline-none focus:border-amber-400 shadow-inner">
-                    </div>
-                    <button type="submit" class="w-full py-3.5 bg-gold-gradient text-black font-black uppercase tracking-wider rounded-xl transition cursor-pointer shadow-gold">Iniciar Sesión</button>
-                </form>
-                <div class="text-center">
-                    <button onclick="verCliente()" class="text-xs text-amber-400 hover:text-white underline cursor-pointer font-semibold">← Volver a la Vista Cliente</button>
-                </div>
-            </div>
-        </section>
-
-        <!-- ================= VISTA ADMIN ================= -->
-        <section id="vistaAdmin" class="space-y-6 hidden">
-            <div class="bg-black p-6 md:p-8 rounded-3xl border border-gold shadow-gold space-y-6">
-                <div class="flex justify-between items-center flex-wrap gap-4 border-b border-gold pb-4">
-                    <div>
-                        <h2 class="text-xl font-black text-gold uppercase tracking-wider">Panel de Administración</h2>
-                        <p class="text-xs text-amber-400/80 mt-0.5 font-medium">Controla tu jornada, citas y galería de cortes.</p>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <button onclick="verCliente()" class="px-3 py-2 bg-zinc-950 hover:bg-zinc-900 text-xs rounded-xl font-bold text-amber-400 border border-gold transition cursor-pointer">← Vista Cliente</button>
-                        <button onclick="cerrarSesionAdmin()" class="px-3 py-2 bg-red-950/80 hover:bg-red-900 text-xs rounded-xl font-bold text-red-400 border border-red-900 transition cursor-pointer">Cerrar Sesión 🚪</button>
-                        <div class="flex items-center gap-2 bg-zinc-950 px-3 py-2 rounded-xl border border-gold">
-                            <span class="text-xs font-bold text-amber-300">¿Laborando?</span>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="switchLaborando" onchange="toggleLaborando()" class="sr-only peer">
-                                <div class="w-9 h-5 bg-zinc-900 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-black after:border-amber-400 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-400"></div>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- GESTIÓN DE GALERÍA DE CORTES (EXCLUSIVO ADMIN) -->
-                <div class="bg-zinc-950 p-4 rounded-2xl border border-gold space-y-4 shadow-inner">
-                    <h3 class="font-bold text-amber-400 text-xs uppercase tracking-wider flex items-center gap-2">
-                        <span>📷 Subir Nuevo Corte a la Galería</span>
-                    </h3>
-                    <form id="formSubirCorte" class="space-y-3">
-                        <div>
-                            <label class="block text-[11px] font-bold uppercase tracking-wider text-amber-400/80 mb-1">Seleccionar Imagen (Archivo local o foto):</label>
-                            <input type="file" id="inputArchivoFoto" accept="image/*" class="w-full p-2.5 rounded-xl bg-black border border-gold text-xs text-amber-200 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-black hover:file:bg-amber-400 cursor-pointer shadow-inner">
-                        </div>
-                        <div>
-                            <label class="block text-[11px] font-bold uppercase tracking-wider text-amber-400/80 mb-1">O pega un Enlace/URL de imagen:</label>
-                            <input type="url" id="inputUrlFoto" placeholder="https://ejemplo.com/corte.jpg" class="w-full p-2.5 rounded-xl bg-black border border-gold text-sm text-amber-100 shadow-inner">
-                        </div>
-                        <div>
-                            <label class="block text-[11px] font-bold uppercase tracking-wider text-amber-400/80 mb-1">Título o Estilo del Corte:</label>
-                            <input type="text" id="inputTituloFoto" placeholder="Ej. Low Fade + Barba Definitiva" class="w-full p-2.5 rounded-xl bg-black border border-gold text-sm text-amber-100 shadow-inner">
-                        </div>
-                        <button type="submit" class="w-full bg-gold-gradient text-black text-xs px-4 py-3 rounded-xl font-black uppercase tracking-wider transition cursor-pointer shadow-gold">Publicar Corte en la Galería</button>
-                    </form>
-
-                    <div class="pt-3 border-t border-zinc-900 space-y-2">
-                        <h4 class="font-bold text-amber-400 text-xs uppercase tracking-wider">Cortes Publicados Activos:</h4>
-                        <div id="listaGaleriaAdmin" class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-64 overflow-y-auto">
-                            <p class="text-xs text-amber-600 italic">No hay fotos publicadas.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-zinc-950 p-4 rounded-2xl border border-gold space-y-3 shadow-inner">
-                    <h3 class="font-bold text-amber-400 text-xs uppercase tracking-wider">Precio del Corte de Cabello</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
-                        <div>
-                            <label class="block text-[11px] font-bold uppercase tracking-wider text-amber-400/80 mb-1">Precio en USD ($):</label>
-                            <input type="number" id="inputPrecio" value="10" min="1" class="w-full p-2.5 rounded-xl bg-black border border-gold text-sm text-amber-100 shadow-inner">
-                        </div>
-                        <div>
-                            <button onclick="guardarPrecioAdmin()" class="w-full bg-gold-gradient text-black text-xs px-4 py-3 rounded-xl font-black uppercase tracking-wider transition cursor-pointer shadow-gold">Guardar Precio</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-zinc-950 p-4 rounded-2xl border border-gold space-y-3 shadow-inner">
-                    <h3 class="font-bold text-amber-400 text-xs uppercase tracking-wider">Horario de Jornada Laboral</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-[11px] font-bold uppercase tracking-wider text-amber-400/80 mb-1">Desde:</label>
-                            <input type="time" id="inputHoraInicio" value="10:00" class="w-full p-2.5 rounded-xl bg-black border border-gold text-sm text-amber-100 shadow-inner">
-                        </div>
-                        <div>
-                            <label class="block text-[11px] font-bold uppercase tracking-wider text-amber-400/80 mb-1">Hasta:</label>
-                            <input type="time" id="inputHoraFin" value="20:00" class="w-full p-2.5 rounded-xl bg-black border border-gold text-sm text-amber-100 shadow-inner">
-                        </div>
-                    </div>
-                    <button onclick="guardarHorarioAdmin()" class="bg-gold-gradient text-black text-xs px-4 py-2.5 rounded-xl font-black uppercase tracking-wider transition cursor-pointer shadow-gold">Guardar Horario</button>
-                </div>
-
-                <div class="bg-zinc-950 p-4 rounded-2xl border border-gold space-y-3 shadow-inner">
-                    <h3 class="font-bold text-amber-400 text-xs uppercase tracking-wider">Datos de Contacto y Enlace</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-[11px] font-bold uppercase tracking-wider text-amber-400/80 mb-1">Teléfono Pago Móvil:</label>
-                            <input type="text" id="inputTelefono" value="584121234567" class="w-full p-2.5 rounded-xl bg-black border border-gold text-sm text-amber-100 shadow-inner">
-                            <button onclick="guardarConfigAdmin()" class="mt-2 bg-zinc-900 hover:bg-zinc-800 text-xs px-3 py-1.5 rounded-xl font-bold text-amber-300 border border-gold transition cursor-pointer">Actualizar Teléfono</button>
-                        </div>
-                        <div>
-                            <label class="block text-[11px] font-bold uppercase tracking-wider text-amber-400/80 mb-1">Enlace de la Web:</label>
-                            <div class="flex gap-2">
-                                <input type="text" id="inputEnlaceCompartir" readonly class="w-full p-2.5 rounded-xl bg-black border border-gold text-xs text-amber-300/80 truncate shadow-inner">
-                                <button onclick="copiarEnlace()" class="bg-zinc-900 hover:bg-zinc-800 px-3 py-2 rounded-xl text-xs font-bold text-amber-300 border border-gold transition shrink-0 cursor-pointer">Copiar</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="space-y-3">
-                    <h3 class="font-bold text-gold text-sm uppercase tracking-wider">Solicitudes y Citas de Clientes</h3>
-                    <div id="listaCitasAdmin" class="space-y-3 max-h-96 overflow-y-auto">
-                        <p class="text-xs text-amber-600 italic">No hay citas registradas.</p>
-                    </div>
-                </div>
+        <!-- GALERÍA DE CORTES PÚBLICA -->
+        <section class="space-y-4">
+            <h3 class="text-sm font-bold text-amber-300 uppercase tracking-wider border-b border-zinc-800 pb-2">Galería de Trabajos</h3>
+            <div id="gridGaleriaPublica" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <p class="text-xs text-amber-600 italic col-span-2 text-center py-6">Cargando galería...</p>
             </div>
         </section>
 
     </main>
 
-    <!-- Script Conectado a Supabase -->
+    <!-- FOOTER -->
+    <footer class="border-t border-zinc-900 bg-black py-4 mt-8 text-center text-[11px] text-zinc-500">
+        &copy; 2026 Titi Barber. Todos los derechos reservados.
+    </footer>
+
+    <!-- MODAL DE ADMINISTRACIÓN -->
+    <div id="modalAdmin" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-zinc-900 border border-gold rounded-2xl max-w-lg w-full p-6 space-y-6 max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
+                <h3 class="text-sm font-black text-amber-400 uppercase tracking-widest">Panel de Administración</h3>
+                <button onclick="toggleAdminModal()" class="text-zinc-400 hover:text-white text-base font-bold cursor-pointer">✕</button>
+            </div>
+
+            <!-- Control de Estado Laboral -->
+            <div class="space-y-2 bg-black p-4 rounded-xl border border-zinc-800">
+                <label class="block text-xs font-bold text-amber-200">Estado Laboral de Hoy</label>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs text-zinc-400">¿Estás recibiendo clientes hoy?</span>
+                    <input type="checkbox" id="switchLaborando" onchange="actualizarEstadoLaboral()" class="w-5 h-5 accent-amber-400 cursor-pointer">
+                </div>
+            </div>
+
+            <!-- Gestión de Citas Recibidas -->
+            <div class="space-y-3">
+                <h4 class="text-xs font-bold text-amber-300 uppercase">Citas Registradas</h4>
+                <div id="listaCitasAdmin" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    <p class="text-xs text-amber-600 italic">No hay citas registradas.</p>
+                </div>
+            </div>
+
+            <!-- Configurar Precio y Horario -->
+            <div class="space-y-3 pt-2 border-t border-zinc-800">
+                <h4 class="text-xs font-bold text-amber-300 uppercase">Ajustes Generales</h4>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] text-zinc-400 mb-1">Precio ($ USD)</label>
+                        <input type="number" id="inputPrecio" class="w-full bg-black border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-zinc-400 mb-1">Teléfono WhatsApp</label>
+                        <input type="text" id="inputTelefono" class="w-full bg-black border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] text-zinc-400 mb-1">Hora Inicio</label>
+                        <input type="time" id="inputHoraInicio" class="w-full bg-black border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-zinc-400 mb-1">Hora Fin</label>
+                        <input type="time" id="inputHoraFin" class="w-full bg-black border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white">
+                    </div>
+                </div>
+                <button onclick="guardarAjustesGenerales()" class="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-amber-300 font-bold text-xs uppercase rounded-lg transition cursor-pointer">Guardar Cambios Generales</button>
+            </div>
+
+            <!-- Subir Foto a la Galería -->
+            <div class="space-y-3 pt-2 border-t border-zinc-800">
+                <h4 class="text-xs font-bold text-amber-300 uppercase">Publicar en Galería</h4>
+                <form id="formSubirCorte" class="space-y-3">
+                    <input type="text" id="inputTituloFoto" placeholder="Título del corte (Ej. Fade Bajo)" required class="w-full bg-black border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white">
+                    <input type="file" id="inputArchivoFoto" accept="image/*" class="w-full text-xs text-zinc-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-400 file:text-zinc-950 hover:file:bg-amber-300 cursor-pointer">
+                    <button type="submit" class="w-full py-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs uppercase rounded-lg transition cursor-pointer">Subir Foto</button>
+                </form>
+                <div id="listaGaleriaAdmin" class="space-y-2 max-h-36 overflow-y-auto pr-1 pt-2">
+                    <!-- Fotos admin -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT DE CONEXIÓN Y LÓGICA -->
     <script>
         // CONFIGURA TUS CREDENCIALES DE SUPABASE AQUÍ
-        const SUPABASE_URL = 'TU_SUPABASE_URL'; 
-        const SUPABASE_ANON_KEY = 'TU_SUPABASE_ANON_KEY';
+        const SUPABASE_URL = 'TU_SUPABASE_URL_AQUÍ';
+        const SUPABASE_ANON_KEY = 'TU_SUPABASE_ANON_KEY_AQUÍ';
         
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        const CORREO_ADMIN_VALIDO = "titibarber@gmail.com";
-        const PASSWORD_ADMIN = "9010";
-        const SESSION_TOKEN_KEY = "titibarber_admin_token";
-
-        let configGlobal = { laborando: false, telefono: '584121234567', precio: '10', horaInicio: '10:00', horaFin: '20:00' };
+        let configGlobal = { laborando: true, precio: 10, telefono: '584121234567', hora_inicio: '10:00', hora_fin: '20:00' };
         let citasGlobal = [];
         let galeriaGlobal = [];
 
-        document.addEventListener('DOMContentLoaded', async function() {
-            document.getElementById('inputEnlaceCompartir').value = window.location.href;
+        document.addEventListener("DOMContentLoaded", async () => {
             await cargarDatosDesdeSupabase();
-            comprobarReinicioMedianoche();
-            renderizarGaleriaCliente();
+            generarOpcionesHoras();
+            renderizarMisCitasCliente();
         });
 
         async function cargarDatosDesdeSupabase() {
-            // Cargar Configuración
-            let { data: configData } = await supabaseClient.from('config_barber').select('*').eq('id', 1).single();
-            if (configData) {
-                configGlobal = configData;
-            }
+            try {
+                // Cargar Configuración
+                let { data: configData } = await supabaseClient.from('config_barber').select('*').eq('id', 1).single();
+                if (configData) {
+                    configGlobal = configData;
+                }
 
-            // Cargar Citas
-            let { data: citasData } = await supabaseClient.from('citas_barber').select('*');
-            if (citasData) {
-                citasGlobal = citasData;
-            }
+                // Cargar Citas
+                let { data: citasData } = await supabaseClient.from('citas_barber').select('*').order('id', { ascending: true });
+                citasGlobal = citasData || [];
 
-            // Cargar Galería
-            let { data: galeriaData } = await supabaseClient.from('galeria_cortes').select('*').order('id', { ascending: false });
-            if (galeriaData) {
-                galeriaGlobal = galeriaData;
-            }
+                // Cargar Galería
+                let { data: galeriaData } = await supabaseClient.from('galeria_cortes').select('*').order('id', { ascending: false });
+                galeriaGlobal = galeriaData || [];
 
-            aplicarConfiguracionInterfaz();
-            generarOpcionesHoras();
+                aplicarConfiguracionInterfaz();
+                renderizarGaleriaCliente();
+                if(!document.getElementById('modalAdmin').classList.contains('hidden')) {
+                    renderizarCitasAdmin();
+                    renderizarGaleriaAdmin();
+                }
+            } catch (err) {
+                console.error("Error al sincronizar con Supabase:", err);
+            }
         }
 
-        async function comprobarReinicioMedianoche() {
-            const ahora = new Date();
-            const fechaHoyStr = ahora.toISOString().split('T')[0];
+        function toggleAdminns() {} // Helper
 
-            if (configGlobal.ultimo_dia_reinicio !== fechaHoyStr) {
-                await supabaseClient.from('citas_barber').delete().neq('id', 0); // Borra todas las citas del día anterior
-                citasGlobal = [];
-                configGlobal.laborando = false;
-                configGlobal.ultimo_dia_reinicio = fechaHoyStr;
-
-                await supabaseClient.from('config_barber').update({
-                    laborando: false,
-                    ultimo_dia_reinicio: fechaHoyStr
-                }).eq('id', 1);
+        function toggleAdminModal() {
+            let modal = document.getElementById('modalAdmin');
+            modal.classList.toggle('hidden');
+            if (!modal.classList.contains('hidden')) {
+                renderizarCitasAdmin();
+                renderizarGaleriaAdmin();
             }
         }
 
         function generarOpcionesHoras() {
-            const hoy = new Date();
-            const opcionesFecha = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            document.getElementById('fechaActualTxt').innerText = hoy.toLocaleDateString('es-ES', opcionesFecha);
+            let select = document.getElementById('horaSeleccionada');
+            let inicio = parseInt((configGlobal.hora_inicio || '10:00').split(':')[0]);
+            let fin = parseInt((configGlobal.hora_fin || '20:00').split(':')[0]);
+            
+            let horasOcupadas = citasGlobal.map(c => c.hora);
+            let html = '<option value="">Selecciona una hora disponible</option>';
 
-            let selectHora = document.getElementById('horaSeleccionada');
-            let horasOcupadas = citasGlobal
-                .filter(c => c.estado === 'Pendiente' || c.estado === 'Confirmada')
-                .map(c => c.hora);
-
-            let [hInicio, mInicio] = (configGlobal.hora_inicio || '10:00').split(':').map(Number);
-            let [hFin, mFin] = (configGlobal.hora_fin || '20:00').split(':').map(Number);
-
-            let opcionesHTML = '<option value="">Selecciona una hora disponible</option>';
-            let horaActualMinutos = hInicio * 60 + mInicio;
-            let horaFinMinutos = hFin * 60 + mFin;
-
-            while (horaActualMinutos <= horaFinMinutos) {
-                let h = Math.floor(horaActualMinutos / 60);
-                let m = horaActualMinutos % 60;
-                
-                let formatoHora = h % 12 === 0 ? 12 : h % 12;
-                let ampm = h >= 12 ? 'PM' : 'AM';
-                let minutosStr = m < 10 ? '0' + m : m;
-                let horaStr = `${formatoHora}:${minutosStr} ${ampm}`;
-
+            for (let i = inicio; i < fin; i++) {
+                let horaStr = `${i < 10 ? '0' + i : i}:00`;
                 let ocupada = horasOcupadas.includes(horaStr);
-                if (ocupada) {
-                    opcionesHTML += `<option value="${horaStr}" disabled class="text-red-500 bg-black font-bold">🔴 ${horaStr} (Ocupada)</option>`;
+                if (!ocupada) {
+                    html += `<option value="${horaStr}">${horaStr}</option>`;
                 } else {
-                    opcionesHTML += `<option value="${horaStr}" class="text-amber-400 bg-black font-semibold">🟢 ${horaStr} (Disponible)</option>`;
+                    html += `<option value="${horaStr}" disabled class="text-zinc-600">${horaStr} (Ocupada)</option>`;
                 }
-
-                horaActualMinutos += 60; 
             }
-
-            selectHora.innerHTML = opcionesHTML;
+            select.innerHTML = html;
         }
 
-        function toggleMenu() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('overlay');
-            sidebar.classList.toggle('-translate-x-full');
-            overlay.classList.toggle('hidden');
-        }
+        async function actualizarEstadoLaboral() {
+            let estado = document.getElementById('switchLaborando').checked;
+            configGlobal.laborando = estado;
 
-        function gestionarAccesoAdmin() {
-            if (localStorage.getItem(SESSION_TOKEN_KEY)) {
-                verAdmin();
-            } else {
-                verLoginAdmin();
-            }
-        }
+            const { error } = await supabaseClient
+                .from('config_barber')
+                .update({ laborando: estado })
+                .eq('id', 1);
 
-        function verLoginAdmin() {
-            document.getElementById('vistaCliente').classList.add('hidden');
-            document.getElementById('vistaGaleriaCliente').classList.add('hidden');
-            document.getElementById('vistaAdmin').classList.add('hidden');
-            document.getElementById('vistaLoginAdmin').classList.remove('hidden');
-        }
-
-        document.getElementById('formLoginAdmin').addEventListener('submit', function(e) {
-            e.preventDefault();
-            let email = document.getElementById('emailAdmin').value.trim().toLowerCase();
-            let pass = document.getElementById('passAdmin').value;
-
-            if (email === CORREO_ADMIN_VALIDO && pass === PASSWORD_ADMIN) {
-                localStorage.setItem(SESSION_TOKEN_KEY, 'active_' + Date.now());
-                document.getElementById('formLoginAdmin').reset();
-                verAdmin();
-            } else {
-                alert("Correo o contraseña incorrectos.");
-            }
-        });
-
-        function cerrarSesionAdmin() {
-            localStorage.removeItem(SESSION_TOKEN_KEY);
-            alert("Has cerrado sesión.");
-            verCliente();
-        }
-
-        async function verCliente() {
-            await cargarDatosDesdeSupabase();
-            comprobarReinicioMedianoche();
-            document.getElementById('vistaCliente').classList.remove('hidden');
-            document.getElementById('vistaGaleriaCliente').classList.add('hidden');
-            document.getElementById('vistaAdmin').classList.add('hidden');
-            document.getElementById('vistaLoginAdmin').classList.add('hidden');
-            renderizarMisCitasCliente();
-            generarOpcionesHoras();
-        }
-
-        async function verGaleriaCliente() {
-            await cargarDatosDesdeSupabase();
-            document.getElementById('vistaGaleriaCliente').classList.remove('hidden');
-            document.getElementById('vistaCliente').classList.add('hidden');
-            document.getElementById('vistaAdmin').classList.add('hidden');
-            document.getElementById('vistaLoginAdmin').classList.add('hidden');
-            renderizarGaleriaCliente();
-        }
-
-        async function verAdmin() {
-            if (!localStorage.getItem(SESSION_TOKEN_KEY)) {
-                verLoginAdmin();
+            if (error) {
+                alert("Error al actualizar estado laboral.");
                 return;
             }
-            await cargarDatosDesdeSupabase();
-            comprobarReinicioMedianoche();
-            document.getElementById('vistaAdmin').classList.remove('hidden');
-            document.getElementById('vistaCliente').classList.add('hidden');
-            document.getElementById('vistaGaleriaCliente').classList.add('hidden');
-            document.getElementById('vistaLoginAdmin').classList.add('hidden');
-            renderizarCitasAdmin();
-            renderizarGaleriaAdmin();
             aplicarConfiguracionInterfaz();
-        }
-
-        async function toggleLaborando() {
-            const isChecked = document.getElementById('switchLaborando').checked;
-            configGlobal.laborando = isChecked;
-            await supabaseClient.from('config_barber').update({ laborando: isChecked }).eq('id', 1);
-            actualizarBannerEstado(isChecked);
-        }
-
-        async function guardarConfigAdmin() {
-            let tel = document.getElementById('inputTelefono').value;
-            configGlobal.telefono = tel;
-            await supabaseClient.from('config_barber').update({ telefono: tel }).eq('id', 1);
-            aplicarConfiguracionInterfaz();
-            alert("Teléfono actualizado.");
-        }
-
-        async function guardarPrecioAdmin() {
-            let precioVal = document.getElementById('inputPrecio').value;
-            configGlobal.precio = precioVal;
-            await supabaseClient.from('config_barber').update({ precio: precioVal }).eq('id', 1);
-            aplicarConfiguracionInterfaz();
-            alert("Precio actualizado.");
-        }
-
-        async function guardarHorarioAdmin() {
-            let hIni = document.getElementById('inputHoraInicio').value;
-            let hFin = document.getElementById('inputHoraFin').value;
-            configGlobal.hora_inicio = hIni;
-            configGlobal.hora_fin = hFin;
-            await supabaseClient.from('config_barber').update({ hora_inicio: hIni, hora_fin: hFin }).eq('id', 1);
-            generarOpcionesHoras();
-            alert("Horario guardado.");
         }
 
         function aplicarConfiguracionInterfaz() {
-            document.getElementById('switchLaborando').checked = configGlobal.laborando;
+            let bannerTop = document.getElementById('estadoBarberoBannerTop');
+            let bannerReserva = document.getElementById('estadoBarberoBanner');
+            let switchEl = document.getElementById('switchLaborando');
+
+            if (switchEl) switchEl.checked = configGlobal.laborando;
+
+            if (configGlobal.laborando) {
+                bannerTop.innerText = "Abierto (Laborando)";
+                bannerTop.className = "text-xs px-3.5 py-1.5 rounded-full font-bold bg-zinc-950 text-emerald-400 border border-emerald-900 uppercase tracking-widest shadow-inner";
+                
+                bannerReserva.innerText = "🟢 Barbero Disponible - Agenda Tu Cita";
+                bannerReserva.className = "text-xs px-3.5 py-1 rounded-full font-bold bg-zinc-950 text-emerald-400 border border-emerald-900 uppercase tracking-wider";
+            } else {
+                bannerTop.innerText = "Cerrado";
+                bannerTop.className = "text-xs px-3.5 py-1.5 rounded-full font-bold bg-zinc-950 text-red-500 border border-red-900 uppercase tracking-widest shadow-inner";
+                
+                bannerReserva.innerText = "🔴 Barbero No Disponible (Cerrado por hoy)";
+                bannerReserva.className = "text-xs px-3.5 py-1 rounded-full font-bold bg-zinc-950 text-red-500 border border-red-900 uppercase tracking-wider";
+            }
+
+            document.getElementById('lblPrecioCorte').innerText = `$${configGlobal.precio || 10} USD`;
+            document.getElementById('lblTituloPago').innerText = `Datos de Pago Móvil ($${configGlobal.precio || 10})`;
+            document.getElementById('inputPrecio').value = configGlobal.precio || 10;
             document.getElementById('inputTelefono').value = configGlobal.telefono || '584121234567';
-            document.getElementById('inputPrecio').value = configGlobal.precio || '10';
+            document.getElementById('lblTelefonoBarbero').innerText = `+${configGlobal.telefono || '58 412-1234567'}`;
             document.getElementById('inputHoraInicio').value = configGlobal.hora_inicio || '10:00';
             document.getElementById('inputHoraFin').value = configGlobal.hora_fin || '20:00';
-            
-            let precioFinal = configGlobal.precio || '10';
-            document.getElementById('lblPrecioCorte').innerText = `$${precioFinal} USD`;
-            document.getElementById('lblTituloPago').innerText = `Datos de Pago Móvil ($${precioFinal})`;
-            document.getElementById('lblTelefonoBarbero').innerText = "+" + (configGlobal.telefono || '584121234567');
-            document.getElementById('linkWhatsApp').href = `https://wa.me/${configGlobal.telefono || '584121234567'}?text=Hola,%20adjunto%20mi%20comprobante.%20Mi%20nombre%20es%20[Tu%20Nombre]%20y%20mi%20hora%20es%20[Hora].`;
-            actualizarBannerEstado(configGlobal.laborando);
-        }
 
-        function actualizarBannerEstado(laborando) {
-            const banner = document.getElementById('estadoBarberoBanner');
-            const bannerTop = document.getElementById('estadoBarberoBannerTop');
-            if (laborando) {
-                banner.className = "text-xs px-3.5 py-1 rounded-full font-bold bg-zinc-950 text-emerald-400 border border-emerald-900 uppercase tracking-wider shadow-inner";
-                banner.innerText = "● Barbero Disponible";
-                bannerTop.className = "text-xs px-3.5 py-1.5 rounded-full font-bold bg-zinc-950 text-emerald-400 border border-emerald-900 uppercase tracking-widest shadow-inner";
-                bannerTop.innerText = "Abierto";
-            } else {
-                banner.className = "text-xs px-3.5 py-1 rounded-full font-bold bg-zinc-950 text-red-500 border border-red-900 uppercase tracking-wider shadow-inner";
-                banner.innerText = "● Barbero No Disponible";
-                bannerTop.className = "text-xs px-3.5 py-1 rounded-full font-bold bg-zinc-950 text-red-500 border border-red-900 uppercase tracking-wider shadow-inner";
-                bannerTop.innerText = "Cerrado";
-            }
-        }
-
-        function copiarEnlace() {
-            const input = document.getElementById('inputEnlaceCompartir');
-            input.select();
-            navigator.clipboard.writeText(input.value);
-            alert("¡Enlace copiado!");
-        }
-
-        // --- GESTIÓN DE GALERÍA DESDE ADMIN ---
-        document.getElementById('formSubirCorte').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const archivoInput = document.getElementById('inputArchivoFoto');
-            const urlInput = document.getElementById('inputUrlFoto').value.trim();
-            const titulo = document.getElementById('inputTituloFoto').value.trim() || "Corte Estilo Titi Barber";
-
-            if (archivoInput.files && archivoInput.files[0]) {
-                const reader = new FileReader();
-                reader.onload = async function(event) {
-                    await guardarFotoGaleriaSupabase(event.target.result, titulo);
-                };
-                reader.readAsDataURL(archivoInput.files[0]);
-            } else if (urlInput) {
-                await guardarFotoGaleriaSupabase(urlInput, titulo);
-            } else {
-                alert("Por favor selecciona una imagen de tu dispositivo o ingresa un enlace.");
-            }
-        });
-
-        async function guardarFotoGaleriaSupabase(imgSrc, titulo) {
-            const nuevaFoto = { id: Date.now(), img: imgSrc, titulo: titulo };
-            await supabaseClient.from('galeria_cortes').insert([nuevaFoto]);
-            
-            document.getElementById('formSubirCorte').reset();
-            alert("¡Corte publicado con éxito en la galería!");
-            await cargarDatosDesdeSupabase();
-            renderizarGaleriaAdmin();
-            renderizarGaleriaCliente();
-        }
-
-        function renderizarGaleriaAdmin() {
-            const contenedor = document.getElementById('listaGaleriaAdmin');
-            if (galeriaGlobal.length === 0) {
-                contenedor.innerHTML = `<p class="text-xs text-amber-600 italic col-span-2">No hay fotos publicadas.</p>`;
-                return;
-            }
-
-            contenedor.innerHTML = '';
-            galeriaGlobal.forEach(item => {
-                const div = document.createElement('div');
-                div.className = "bg-black p-3 rounded-xl border border-gold flex items-center justify-between gap-3 shadow-inner";
-                div.innerHTML = `
-                    <div class="flex items-center gap-3 overflow-hidden">
-                        <img src="${item.img}" alt="${item.titulo}" class="w-12 h-12 object-cover rounded-lg border border-gold shrink-0">
-                        <p class="text-xs font-bold text-amber-100 truncate">${item.titulo}</p>
-                    </div>
-                    <button onclick="eliminarFotoGaleria(${item.id})" class="bg-zinc-900 hover:bg-zinc-800 text-red-400 font-bold p-2 rounded-lg border border-red-900 transition shrink-0 cursor-pointer">🗑️</button>
-                `;
-                contenedor.appendChild(div);
-            });
-        }
-
-        function renderizarGaleriaCliente() {
-            const contenedor = document.getElementById('gridGaleriaPublica');
-            if (galeriaGlobal.length === 0) {
-                contenedor.innerHTML = `<p class="text-xs text-amber-600 italic col-span-2 text-center py-6">El barbero aún no ha publicado fotos en la galería.</p>`;
-                return;
-            }
-
-            contenedor.innerHTML = '';
-            galeriaGlobal.forEach(item => {
-                const div = document.createElement('div');
-                div.className = "bg-zinc-950 p-4 rounded-2xl border border-gold space-y-3 shadow-inner group";
-                div.innerHTML = `
-                    <div class="overflow-hidden rounded-xl border border-gold/60 aspect-square">
-                        <img src="${item.img}" alt="${item.titulo}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
-                    </div>
-                    <div class="text-center">
-                        <h4 class="font-black text-amber-300 text-sm tracking-wide uppercase">${item.titulo}</h4>
-                        <span class="text-[10px] text-amber-600 font-semibold uppercase tracking-widest">Titi Barber Style</span>
-                    </div>
-                `;
-                contenedor.appendChild(div);
-            });
-        }
-
-        async function eliminarFotoGaleria(id) {
-            if (confirm("¿Estás seguro de eliminar este corte de la galería?")) {
-                await supabaseClient.from('galeria_cortes').delete().eq('id', id);
-                await cargarDatosDesdeSupabase();
-                renderizarGaleriaAdmin();
-                renderizarGaleriaCliente();
-            }
+            let telLink = (configGlobal.telefono || '584121234567').replace(/\D/g, '');
+            document.getElementById('linkWhatsApp').href = `https://wa.me/${telLink}?text=Hola%20Titi%20Barber,%20le%20envío%20el%20comprobante%20de%20pago%20móvil%20de%20mi%20cita.`;
         }
 
         document.getElementById('formReserva').addEventListener('submit', async function(e) {
             e.preventDefault();
-            await cargarDatosDesdeSupabase();
+
             if (!configGlobal.laborando) {
-                alert("El barbero no está laborando actualmente.");
+                alert("Lo sentimos, el barbero no se encuentra laborando en este momento.");
                 return;
             }
 
-            const nombre = document.getElementById('nombreCliente').value.trim();
-            const hora = document.getElementById('horaSeleccionada').value;
+            let nombre = document.getElementById('nombreCliente').value.trim();
+            let hora = document.getElementById('horaSeleccionada').value;
 
-            if (citasGlobal.some(c => c.hora === hora && (c.estado === 'Pendiente' || c.estado === 'Confirmada'))) {
-                alert("Lo sentimos, esta hora acaba de ser ocupada.");
-                generarOpcionesHoras();
+            if (!hora) {
+                alert("Por favor selecciona una hora válida.");
                 return;
             }
 
-            const nuevaCita = { id: Date.now(), nombre, hora, estado: "Pendiente" };
-            await supabaseClient.from('citas_barber').insert([nuevaCita]);
+            let nuevaCita = {
+                nombre: nombre,
+                hora: hora,
+                estado: 'Pendiente',
+                fecha_creacion: new Date().toISOString()
+            };
 
-            alert("¡Cita solicitada con éxito! Queda a la espera de confirmación.");
+            const { data, error } = await supabaseClient.from('citas_barber').insert([nuevaCita]).select();
+
+            if (error) {
+                alert("Hubo un error al registrar tu cita. Intenta de nuevo.");
+                return;
+            }
+
+            if (data) {
+                citasGlobal.push(data[0]);
+                let misCitasLocales = JSON.parse(localStorage.getItem('titibarber_mis_citas') || '[]');
+                misCitasLocales.push(data[0].id);
+                localStorage.setItem('titibarber_mis_citas', JSON.stringify(misCitasLocales));
+            }
+
             document.getElementById('formReserva').reset();
+            alert("¡Cita solicitada con éxito! Recuerda enviar tu comprobante por WhatsApp.");
             await cargarDatosDesdeSupabase();
-            generarOpcionesHoras();
             renderizarMisCitasCliente();
+            generarOpcionesHoras();
         });
 
-        function convertirHoraAMinutos(horaStr) {
-            let partes = horaStr.split(' ');
-            let hm = partes[0].split(':');
-            let h = parseInt(hm[0]);
-            let m = parseInt(hm[1]);
-            let ampm = partes[1];
-            if (ampm === 'PM' && h < 12) h += 12;
-            if (ampm === 'AM' && h === 12) h = 0;
-            return h * 60 + m;
-        }
-
         function renderizarMisCitasCliente() {
-            const contenedor = document.getElementById('listaMisCitas');
-            if (citasGlobal.length === 0) {
-                contenedor.innerHTML = `<p class="text-xs text-amber-600 italic">No tienes solicitudes registradas.</p>`;
+            let contenedor = document.getElementById('listaMisCitas');
+            let misCitasIds = JSON.parse(localStorage.getItem('titibarber_mis_citas') || '[]');
+            let misCitas = citasGlobal.filter(c => misCitasIds.includes(c.id));
+
+            if (misCitas.length === 0) {
+                contenedor.innerHTML = `<p class="text-xs text-amber-600 italic">No tienes solicitudes registradas en este dispositivo.</p>`;
                 return;
             }
 
-            contenedor.innerHTML = '';
-            citasGlobal.forEach(cita => {
-                let badgeClass = "bg-amber-500/10 text-amber-400 border-gold";
-                let textoEstado = "⏳ En espera de confirmación";
-
-                if (cita.estado === "Confirmada") {
-                    badgeClass = "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
-                    textoEstado = "✅ Cita Confirmada";
-                } else if (cita.estado === "Rechazada") {
-                    badgeClass = "bg-red-500/10 text-red-500 border-red-500/30";
-                    textoEstado = "❌ Rechazada / No disponible";
-                }
-
-                const div = document.createElement('div');
-                div.className = "bg-zinc-950 p-4 rounded-2xl border border-gold space-y-2 text-xs shadow-inner";
-                div.innerHTML = `
-                    <div class="flex justify-between items-center flex-wrap gap-2">
-                        <span class="font-bold text-amber-400 text-sm">Turno Agendado</span>
-                        <span class="px-2.5 py-1 rounded-full border font-bold ${badgeClass}">${textoEstado}</span>
+            let html = '';
+            misCitas.forEach(c => {
+                let colorEstado = c.estado === 'Confirmada' ? 'text-emerald-400 border-emerald-900 bg-emerald-950/30' : 'text-amber-400 border-amber-900 bg-amber-950/30';
+                html += `
+                    <div class="p-3.5 rounded-xl bg-zinc-950 border border-gold flex justify-between items-center gap-3 shadow-inner">
+                        <div>
+                            <p class="text-xs font-bold text-amber-100">${c.nombre}</p>
+                            <p class="text-[11px] text-amber-400">Hora: <strong>${c.hora}</strong></p>
+                        </div>
+                        <span class="text-[10px] px-2.5 py-1 rounded-md font-bold uppercase border ${colorEstado}">${c.estado}</span>
                     </div>
-                    <p class="text-amber-200/70">⏰ Hora reservada: <strong class="text-amber-300">${cita.hora}</strong></p>
                 `;
-                contenedor.appendChild(div);
             });
+            contenedor.innerHTML = html;
         }
 
         function renderizarCitasAdmin() {
-            const contenedor = document.getElementById('listaCitasAdmin');
+            let contenedor = document.getElementById('listaCitasAdmin');
             if (citasGlobal.length === 0) {
                 contenedor.innerHTML = `<p class="text-xs text-amber-600 italic">No hay citas registradas.</p>`;
                 return;
             }
 
-            citasGlobal.sort((a, b) => convertirHoraAMinutos(a.hora) - convertirHoraAMinutos(b.hora));
-
-            contenedor.innerHTML = '';
-            citasGlobal.forEach(cita => {
-                let estadoColor = "text-amber-400";
-                if (cita.estado === "Confirmada") estadoColor = "text-emerald-400";
-                if (cita.estado === "Rechazada") estadoColor = "text-red-500";
-
-                const div = document.createElement('div');
-                div.className = "bg-zinc-950 p-4 rounded-2xl border border-gold flex justify-between items-center text-xs flex-wrap gap-3 shadow-inner";
-                div.innerHTML = `
-                    <div class="space-y-1">
-                        <p class="font-bold text-amber-100 text-sm">Cliente: ${cita.nombre} - <span class="text-amber-400">${cita.hora}</span></p>
-                        <p class="text-amber-200/70">Estado: <strong class="${estadoColor}">${cita.estado}</strong></p>
-                    </div>
-                    <div class="flex gap-2 items-center">
-                        ${cita.estado === 'Pendiente' ? `
-                            <button onclick="cambiarEstado(${cita.id}, 'Confirmada')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-2 rounded-xl transition cursor-pointer shadow-sm">Aceptar</button>
-                            <button onclick="cambiarEstado(${cita.id}, 'Rechazada')" class="bg-red-600 hover:bg-red-500 text-white font-bold px-3 py-2 rounded-xl transition cursor-pointer shadow-sm">Rechazar</button>
-                        ` : ''}
-                        <button onclick="eliminarCita(${cita.id})" class="bg-zinc-900 hover:bg-zinc-800 text-amber-400 hover:text-white font-bold px-2.5 py-2 rounded-xl border border-gold transition cursor-pointer">🗑️</button>
+            let html = '';
+            citasGlobal.forEach(c => {
+                html += `
+                    <div class="p-3.5 rounded-xl bg-black border border-gold flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-inner">
+                        <div>
+                            <p class="text-xs font-bold text-amber-200">Cliente: <span class="text-white">${c.nombre}</span></p>
+                            <p class="text-xs text-amber-400">Hora seleccionada: <strong>${c.hora}</strong></p>
+                            <p class="text-[10px] text-zinc-400">Estado actual: <span class="font-bold text-amber-300">${c.estado}</span></p>
+                        </div>
+                        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                            <button onclick="cambiarEstadoCita(${c.id}, 'Confirmada')" class="px-3 py-1.5 bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-800 text-[11px] font-bold rounded-lg transition cursor-pointer">Confirmar ✓</button>
+                            <button onclick="eliminarCita(${c.id})" class="px-3 py-1.5 bg-red-950 hover:bg-red-900 text-red-300 border border-red-800 text-[11px] font-bold rounded-lg transition cursor-pointer">Eliminar ✕</button>
+                        </div>
                     </div>
                 `;
-                contenedor.appendChild(div);
             });
+            contenedor.innerHTML = html;
         }
 
-        async function cambiarEstado(id, nuevoEstado) {
-            await supabaseClient.from('citas_barber').update({ estado: nuevoEstado }).eq('id', id);
+        async function cambiarEstadoCita(id, nuevoEstado) {
+            const { error } = await supabaseClient.from('citas_barber').update({ estado: nuevoEstado }).eq('id', id);
+            if (error) {
+                alert("Error al actualizar la cita.");
+                return;
+            }
             await cargarDatosDesdeSupabase();
-            generarOpcionesHoras();
             renderizarCitasAdmin();
-            renderizarMisCitasCliente();
         }
 
         async function eliminarCita(id) {
-            await supabaseClient.from('citas_barber').delete().eq('id', id);
+            if (!confirm("¿Estás seguro de eliminar esta cita?")) return;
+            const { error } = await supabaseClient.from('citas_barber').delete().eq('id', id);
+            if (error) {
+                alert("Error al eliminar la cita.");
+                return;
+            }
             await cargarDatosDesdeSupabase();
-            generarOpcionesHoras();
             renderizarCitasAdmin();
-            renderizarMisCitasCliente();
+            generarOpcionesHoras();
+        }
+
+        async function guardarAjustesGenerales() {
+            let nuevoPrecio = document.getElementById('inputPrecio').value;
+            let nuevoTel = document.getElementById('inputTelefono').value.trim();
+            let hInicio = document.getElementById('inputHoraInicio').value;
+            let hFin = document.getElementById('inputHoraFin').value;
+
+            const { error } = await supabaseClient.from('config_barber').update({ 
+                precio: nuevoPrecio, 
+                telefono: nuevoTel,
+                hora_inicio: hInicio,
+                hora_fin: hFin 
+            }).eq('id', 1);
+
+            if (error) {
+                alert("Error al actualizar los ajustes.");
+                return;
+            }
+            configGlobal.precio = nuevoPrecio;
+            configGlobal.telefono = nuevoTel;
+            configGlobal.hora_inicio = hInicio;
+            configGlobal.hora_fin = hFin;
+
+            aplicarConfiguracionInterfaz();
+            generarOpcionesHoras();
+            alert("¡Ajustes generales actualizados con éxito!");
+        }
+
+        document.getElementById('formSubirCorte').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            let titulo = document.getElementById('inputTituloFoto').value.trim();
+            let inputArchivo = document.getElementById('inputArchivoFoto');
+
+            if (inputArchivo.files && inputArchivo.files[0]) {
+                let reader = new FileReader();
+                reader.onload = async function(eUpload) {
+                    await insertarCorteGaleria(titulo, eUpload.target.result);
+                }
+                reader.readAsDataURL(inputArchivo.files[0]);
+            } else {
+                alert("Por favor selecciona una imagen local.");
+            }
+        });
+
+        async function insertarCorteGaleria(titulo, url) {
+            const { error } = await supabaseClient.from('galeria_cortes').insert([{ titulo: titulo, imagen_url: url }]);
+            if (error) {
+                alert("Error al publicar la foto en la galería.");
+                return;
+            }
+            document.getElementById('formSubirCorte').reset();
+            await cargarDatosDesdeSupabase();
+            renderizarGaleriaAdmin();
+            renderizarGaleriaCliente();
+            alert("¡Corte publicado con éxito!");
+        }
+
+        function renderizarGaleriaAdmin() {
+            let contenedor = document.getElementById('listaGaleriaAdmin');
+            if (galeriaGlobal.length === 0) {
+                contenedor.innerHTML = `<p class="text-xs text-amber-600 italic">No hay fotos publicadas.</p>`;
+                return;
+            }
+            let html = '';
+            galeriaGlobal.forEach(item => {
+                html += `
+                    <div class="bg-black p-3 rounded-xl border border-gold flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <img src="${item.imagen_url}" class="w-12 h-12 object-cover rounded-lg border border-gold shrink-0">
+                            <div>
+                                <p class="text-xs font-bold text-amber-200 truncate max-w-[120px]">${item.titulo || 'Sin título'}</p>
+                            </div>
+                        </div>
+                        <button onclick="eliminarCorteGaleria(${item.id})" class="px-2.5 py-1 bg-red-950 text-red-400 hover:bg-red-900 border border-red-900 rounded-lg text-[11px] font-bold transition cursor-pointer">Eliminar</button>
+                    </div>
+                `;
+            });
+            contenedor.innerHTML = html;
+        }
+
+        async function eliminarCorteGaleria(id) {
+            if (!confirm("¿Deseas eliminar esta foto de la galería?")) return;
+            const { error } = await supabaseClient.from('galeria_cortes').delete().eq('id', id);
+            if (error) {
+                alert("Error al eliminar la foto.");
+                return;
+            }
+            await cargarDatosDesdeSupabase();
+            renderizarGaleriaAdmin();
+            renderizarGaleriaCliente();
+        }
+
+        function renderizarGaleriaCliente() {
+            let contenedor = document.getElementById('gridGaleriaPublica');
+            if (galeriaGlobal.length === 0) {
+                contenedor.innerHTML = `<p class="text-xs text-amber-600 italic col-span-2 text-center py-6">El barbero aún no ha publicado fotos en la galería.</p>`;
+                return;
+            }
+            let html = '';
+            galeriaGlobal.forEach(item => {
+                html += `
+                    <div class="bg-zinc-950 p-3 rounded-2xl border border-gold space-y-3 shadow-inner">
+                        <div class="overflow-hidden rounded-xl border border-gold/60 h-64">
+                            <img src="${item.imagen_url}" alt="${item.titulo}" class="w-full h-full object-cover hover:scale-105 transition duration-300">
+                        </div>
+                        <div class="px-1 pb-1">
+                            <h4 class="font-bold text-amber-200 text-xs uppercase tracking-wider">${item.titulo || 'Corte Estilo Libre'}</h4>
+                        </div>
+                    </div>
+                `;
+            });
+            contenedor.innerHTML = html;
         }
     </script>
 </body>
