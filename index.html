@@ -348,8 +348,7 @@
 
         async function sincronizarDatosSupabase() {
             try {
-                // 1. Obtener Config
-                let { data: configData, error: errConfig } = await supabaseClient
+                let { data: configData } = await supabaseClient
                     .from('configuracion')
                     .select('*')
                     .eq('id', 1)
@@ -366,8 +365,7 @@
                     };
                 }
 
-                // 2. Obtener Citas
-                let { data: citasData, error: errCitas } = await supabaseClient
+                let { data: citasData } = await supabaseClient
                     .from('citas')
                     .select('*')
                     .order('id', { ascending: true });
@@ -376,8 +374,7 @@
                     citasCache = citasData;
                 }
 
-                // 3. Obtener Galería
-                let { data: galeriaData, error: errGaleria } = await supabaseClient
+                let { data: galeriaData } = await supabaseClient
                     .from('galeria')
                     .select('*')
                     .order('id', { ascending: false });
@@ -397,7 +394,6 @@
             const fechaHoyStr = ahora.toISOString().split('T')[0];
 
             if (configCache.ultimoDiaReinicio !== fechaHoyStr) {
-                // Borrar citas en Supabase al nuevo día
                 await supabaseClient.from('citas').delete().neq('id', 0);
                 
                 configCache.laborando = false;
@@ -417,7 +413,6 @@
             document.getElementById('fechaActualTxt').innerText = hoy.toLocaleDateString('es-ES', opcionesFecha);
 
             let selectHora = document.getElementById('horaSeleccionada');
-
             let horasOcupadas = citasCache
                 .filter(c => c.estado === 'Pendiente' || c.estado === 'Confirmada')
                 .map(c => c.hora);
@@ -513,20 +508,270 @@
             renderizarGaleriaCliente();
         }
 
+        async function verAdmin() {
+            if (!localStorage.getItem(SESSION_TOKEN_KEY)) {
+                verLoginAdmin();
+                return;
+            }
+            await sincronizarDatosSupabase();
+            document.getElementById('vistaAdmin').classList.remove('hidden');
+            document.getElementById('vistaCliente').classList.add('hidden');
+            document.getElementById('vistaGaleriaCliente').classList.add('hidden');
+            document.getElementById('vistaLoginAdmin').classList.add('hidden');
+            renderizarPanelAdmin();
+        }
+
+        function cargarConfiguracionInterfaz() {
+            document.getElementById('lblPrecioCorte').innerText = `$${configCache.precio} USD`;
+            document.getElementById('lblTituloPago').innerText = `Datos de Pago Móvil ($${configCache.precio})`;
+            document.getElementById('lblTelefonoBarbero').innerText = `+58 ${configCache.telefono}`;
+            document.getElementById('linkWhatsApp').href = `https://wa.me/${configCache.telefono}?text=Hola%20Titi%20Barber,%20te%20envío%20el%20comprobante%20de%20mi%20pago%20móvil.`;
+
+            // Inputs Admin
+            document.getElementById('inputPrecio').value = configCache.precio;
+            document.getElementById('inputTelefono').value = configCache.telefono;
+            document.getElementById('inputHoraInicio').value = configCache.horaInicio;
+            document.getElementById('inputHoraFin').value = configCache.horaFin;
+            document.getElementById('switchLaborando').checked = configCache.laborando;
+
+            let bannerTop = document.getElementById('estadoBarberoBannerTop');
+            let bannerMid = document.getElementById('estadoBarberoBanner');
+
+            if (configCache.laborando) {
+                bannerTop.innerText = "Abierto";
+                bannerTop.className = "text-xs px-3.5 py-1.5 rounded-full font-bold bg-zinc-950 text-emerald-400 border border-emerald-900 uppercase tracking-widest shadow-inner";
+                bannerMid.innerText = "Barbero Disponible - ¡Reserva Ahora!";
+                bannerMid.className = "text-xs px-3.5 py-1 rounded-full font-bold bg-zinc-950 text-emerald-400 border border-emerald-900 uppercase tracking-wider";
+            } else {
+                bannerTop.innerText = "Cerrado";
+                bannerTop.className = "text-xs px-3.5 py-1.5 rounded-full font-bold bg-zinc-950 text-red-500 border border-red-900 uppercase tracking-widest shadow-inner";
+                bannerMid.innerText = "Barbero no disponible";
+                bannerMid.className = "text-xs px-3.5 py-1 rounded-full font-bold bg-zinc-950 text-red-500 border border-red-900 uppercase tracking-wider";
+            }
+        }
+
+        // Registrar Cita Cliente
+        document.getElementById('formReserva').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            if (!configCache.laborando) {
+                alert("El barbero no se encuentra laborando en este momento. Intenta más tarde.");
+                return;
+            }
+
+            let nombre = document.getElementById('nombreCliente').value.trim();
+            let hora = document.getElementById('horaSeleccionada').value;
+
+            if (!nombre || !hora) {
+                alert("Por favor completa todos los campos.");
+                return;
+            }
+
+            let nuevaCita = {
+                nombre: nombre,
+                hora: hora,
+                estado: 'Pendiente',
+                fecha: new Date().toISOString().split('T')[0]
+            };
+
+            let { error } = await supabaseClient.from('citas').insert([nuevaCita]);
+            if (error) {
+                alert("Error al guardar la cita: " + error.message);
+                return;
+            }
+
+            alert("¡Cita solicitada con éxito! Recuerda enviar tu comprobante por WhatsApp.");
+            document.getElementById('formReserva').reset();
+            await sincronizarDatosSupabase();
+            generarOpcionesHoras();
+            renderizarMisCitasCliente();
+        });
+
+        function renderizarMisCitasCliente() {
+            let contenedor = document.getElementById('listaMisCitas');
+            if (citasCache.length === 0) {
+                contenedor.innerHTML = `<p class="text-xs text-amber-600 italic">No tienes solicitudes registradas.</p>`;
+                return;
+            }
+
+            let html = '';
+            citasCache.forEach(c => {
+                let colorEstado = c.estado === 'Confirmada' ? 'text-emerald-400 border-emerald-900 bg-emerald-950/20' : 
+                                  c.estado === 'Cancelada' ? 'text-red-400 border-red-900 bg-red-950/20' : 'text-amber-400 border-gold bg-amber-950/20';
+                
+                html += `
+                    <div class="p-3.5 rounded-xl bg-zinc-950 border border-gold flex justify-between items-center text-xs shadow-inner">
+                        <div>
+                            <p class="font-bold text-amber-100">${c.nombre}</p>
+                            <p class="text-amber-400 font-semibold">🕒 Hora: ${c.hora}</p>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-lg border font-bold uppercase tracking-wider ${colorEstado}">${c.estado}</span>
+                    </div>
+                `;
+            });
+            contenedor.innerHTML = html;
+        }
+
+        // Acciones del Panel Admin
+        async function toggleLaborando() {
+            let estado = document.getElementById('switchLaborando').checked;
+            configCache.laborando = estado;
+
+            await supabaseClient.from('configuracion').update({ laborando: estado }).eq('id', 1);
+            cargarConfiguracionInterfaz();
+        }
+
+        async function guardarPrecioAdmin() {
+            let precio = document.getElementById('inputPrecio').value;
+            configCache.precio = precio;
+            await supabaseClient.from('configuracion').update({ precio: precio }).eq('id', 1);
+            cargarConfiguracionInterfaz();
+            alert("Precio actualizado correctamente.");
+        }
+
+        async function guardarHorarioAdmin() {
+            let hInicio = document.getElementById('inputHoraInicio').value;
+            let hFin = document.getElementById('inputHoraFin').value;
+            configCache.horaInicio = hInicio;
+            configCache.horaFin = hFin;
+
+            await supabaseClient.from('configuracion').update({ hora_inicio: hInicio, hora_fin: hFin }).eq('id', 1);
+            generarOpcionesHoras();
+            alert("Horario actualizado correctamente.");
+        }
+
+        async function guardarConfigAdmin() {
+            let telefono = document.getElementById('inputTelefono').value.trim();
+            configCache.telefono = telefono;
+            await supabaseClient.from('configuracion').update({ telefono: telefono }).eq('id', 1);
+            cargarConfiguracionInterfaz();
+            alert("Teléfono actualizado correctamente.");
+        }
+
         function copiarEnlace() {
             let input = document.getElementById('inputEnlaceCompartir');
             input.select();
-            document.execCommand('copy');
+            navigator.clipboard.writeText(input.value);
             alert("¡Enlace copiado al portapapeles!");
         }
 
-        // --- BLOQUE DE TIEMPO REAL (REALTIME) AÑADIDO ---
-        supabaseClient
-          .channel('public-changes')
-          .on('postgres_changes', { event: '*', schema: 'public' }, async (payload) => {
-              await sincronizarDatosSupabase();
-          })
-          .subscribe();
+        // Gestión de Galería en Admin
+        document.getElementById('formSubirCorte').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            let urlFoto = document.getElementById('inputUrlFoto').value.trim();
+            let titulo = document.getElementById('inputTituloFoto').value.trim() || "Corte Estilo Titi Barber";
+            let inputArchivo = document.getElementById('inputArchivoFoto');
+
+            if (inputArchivo.files && inputArchivo.files[0]) {
+                let reader = new FileReader();
+                reader.onload = async function(eUpload) {
+                    let base64Image = eUpload.target.result;
+                    await guardarFotoGaleria(base64Image, titulo);
+                };
+                reader.readAsDataURL(inputArchivo.files[0]);
+            } else if (urlFoto) {
+                await guardarFotoGaleria(urlFoto, titulo);
+            } else {
+                alert("Por favor selecciona una imagen de tu dispositivo o ingresa un enlace URL.");
+            }
+        });
+
+        async function guardarFotoGaleria(imagenUrl, titulo) {
+            let { error } = await supabaseClient.from('galeria').insert([{ imagen_url: imagenUrl, titulo: titulo }]);
+            if (error) {
+                alert("Error al subir la foto: " + error.message);
+                return;
+            }
+            document.getElementById('formSubirCorte').reset();
+            await sincronizarDatosSupabase();
+            renderizarPanelAdmin();
+            alert("¡Corte publicado con éxito en la galería!");
+        }
+
+        async function eliminarFotoGaleria(id) {
+            if (!confirm("¿Deseas eliminar esta foto de la galería?")) return;
+            await supabaseClient.from('galeria').delete().eq('id', id);
+            await sincronizarDatosSupabase();
+            renderizarPanelAdmin();
+        }
+
+        function renderizarGaleriaCliente() {
+            let contenedor = document.getElementById('gridGaleriaPublica');
+            if (galeriaCache.length === 0) {
+                contenedor.innerHTML = `<p class="text-xs text-amber-600 italic col-span-2 text-center py-6">El barbero aún no ha publicado fotos en la galería.</p>`;
+                return;
+            }
+
+            let html = '';
+            galeriaCache.forEach(item => {
+                html += `
+                    <div class="bg-zinc-950 p-3 rounded-2xl border border-gold space-y-2 shadow-inner">
+                        <img src="${item.imagen_url}" alt="${item.titulo}" class="w-full h-64 object-cover rounded-xl border border-gold/40">
+                        <p class="font-bold text-xs text-amber-300 text-center uppercase tracking-wider">${item.titulo}</p>
+                    </div>
+                `;
+            });
+            contenedor.innerHTML = html;
+        }
+
+        function renderizarPanelAdmin() {
+            // Renderizar Citas en Admin
+            let contenedorCitas = document.getElementById('listaCitasAdmin');
+            if (citasCache.length === 0) {
+                contenedorCitas.innerHTML = `<p class="text-xs text-amber-600 italic">No hay citas registradas.</p>`;
+            } else {
+                let htmlCitas = '';
+                citasCache.forEach(c => {
+                    htmlCitas += `
+                        <div class="p-3.5 rounded-xl bg-zinc-950 border border-gold flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs shadow-inner">
+                            <div>
+                                <p class="font-bold text-amber-100 text-sm">${c.nombre}</p>
+                                <p class="text-amber-400 font-semibold">🕒 Hora: ${c.hora} &bull; Estado: <span class="uppercase">${c.estado}</span></p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="cambiarEstadoCita(${c.id}, 'Confirmada')" class="px-2.5 py-1.5 rounded-lg bg-emerald-950 hover:bg-emerald-900 text-emerald-400 font-bold border border-emerald-900 transition cursor-pointer">Confirmar</button>
+                                <button onclick="cambiarEstadoCita(${c.id}, 'Cancelada')" class="px-2.5 py-1.5 rounded-lg bg-red-950 hover:bg-red-900 text-red-400 font-bold border border-red-900 transition cursor-pointer">Cancelar</button>
+                                <button onclick="eliminarCita(${c.id})" class="px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 font-bold border border-zinc-700 transition cursor-pointer">Eliminar</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                contenedorCitas.innerHTML = htmlCitas;
+            }
+
+            // Renderizar Galería en Admin
+            let contenedorGaleria = document.getElementById('listaGaleriaAdmin');
+            if (galeriaCache.length === 0) {
+                contenedorGaleria.innerHTML = `<p class="text-xs text-amber-600 italic">No hay fotos publicadas.</p>`;
+            } else {
+                let htmlGaleria = '';
+                galeriaCache.forEach(item => {
+                    htmlGaleria += `
+                        <div class="p-2.5 rounded-xl bg-black border border-gold flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3">
+                                <img src="${item.imagen_url}" class="w-12 h-12 object-cover rounded-lg border border-gold/50">
+                                <p class="font-bold text-xs text-amber-200 truncate max-w-[140px]">${item.titulo}</p>
+                            </div>
+                            <button onclick="eliminarFotoGaleria(${item.id})" class="px-2.5 py-1.5 rounded-lg bg-red-950/80 hover:bg-red-900 text-xs font-bold text-red-400 border border-red-900 cursor-pointer">Borrar</button>
+                        </div>
+                    `;
+                });
+                contenedorGaleria.innerHTML = htmlGaleria;
+            }
+        }
+
+        async function cambiarEstadoCita(id, nuevoEstado) {
+            await supabaseClient.from('citas').update({ estado: nuevoEstado }).eq('id', id);
+            await sincronizarDatosSupabase();
+            renderizarPanelAdmin();
+        }
+
+        async function eliminarCita(id) {
+            if (!confirm("¿Deseas eliminar esta cita permanentemente?")) return;
+            await supabaseClient.from('citas').delete().eq('id', id);
+            await sincronizarDatosSupabase();
+            renderizarPanelAdmin();
+            generarOpcionesHoras();
+        }
     </script>
 </body>
 </html>
