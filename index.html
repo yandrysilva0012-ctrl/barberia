@@ -209,17 +209,14 @@
 
         async function cargarDatosDesdeSupabase() {
             try {
-                // Cargar Configuración
                 let { data: configData } = await supabaseClient.from('config_barber').select('*').eq('id', 1).single();
                 if (configData) {
                     configGlobal = configData;
                 }
 
-                // Cargar Citas
                 let { data: citasData } = await supabaseClient.from('citas_barber').select('*').order('id', { ascending: true });
                 citasGlobal = citasData || [];
 
-                // Cargar Galería
                 let { data: galeriaData } = await supabaseClient.from('galeria_cortes').select('*').order('id', { ascending: false });
                 galeriaGlobal = galeriaData || [];
 
@@ -233,8 +230,6 @@
                 console.error("Error al sincronizar con Supabase:", err);
             }
         }
-
-        function toggleAdminns() {} // Helper
 
         function toggleAdminModal() {
             let modal = document.getElementById('modalAdmin');
