@@ -315,7 +315,7 @@
 
     </main>
 
-    <!-- Script con Supabase Conectado y Sincronización Realtime -->
+    <!-- Script con Supabase Conectado y Sincronización Realtime Única -->
     <script>
         const CORREO_ADMIN_VALIDO = "titibarber@gmail.com";
         const PASSWORD_ADMIN = "9010";
@@ -325,7 +325,8 @@
         const SUPABASE_URL = "https://nysgxyzgxsxohbyhrtif.supabase.co";
         const SUPABASE_KEY = "sb_publishable_8i6aodxpqm1osjhavrLRBA_VC_Pd";
         
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // Instancia única y global limpia (Evita múltiples instancias del cliente)
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let configCache = {
             laborando: false,
