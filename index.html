@@ -342,7 +342,6 @@
         document.addEventListener('DOMContentLoaded', async function() {
             document.getElementById('inputEnlaceCompartir').value = window.location.href;
             await sincronizarDatosSupabase();
-            comprobarReinicioMedianoche();
             generarOpcionesHoras();
             renderizarGaleriaCliente();
             
@@ -417,6 +416,9 @@
                         console.log('Cambio detectado en configuración:', payload);
                         await sincronizarDatosSupabase();
                         generarOpcionesHoras();
+                        if (document.getElementById('switchLaborando')) {
+                            document.getElementById('switchLaborando').checked = configCache.laborando;
+                        }
                     }
                 )
                 .on(
@@ -432,24 +434,6 @@
                     }
                 )
                 .subscribe();
-        }
-
-        async function comprobarReinicioMedianoche() {
-            const ahora = new Date();
-            const fechaHoyStr = ahora.toISOString().split('T')[0];
-
-            if (configCache.ultimoDiaReinicio !== fechaHoyStr) {
-                await supabaseClient.from('citas').delete().neq('id', 0);
-                
-                configCache.laborando = false;
-                configCache.ultimoDiaReinicio = fechaHoyStr;
-                citasCache = [];
-
-                await supabaseClient.from('configuracion').update({
-                    laborando: false,
-                    ultimo_dia_reinicio: fechaHoyStr
-                }).eq('id', 1);
-            }
         }
 
         function generarOpcionesHoras() {
@@ -535,7 +519,6 @@
 
         async function verCliente() {
             await sincronizarDatosSupabase();
-            comprobarReinicioMedianoche();
             document.getElementById('vistaCliente').classList.remove('hidden');
             document.getElementById('vistaGaleriaCliente').classList.add('hidden');
             document.getElementById('vistaAdmin').classList.add('hidden');
