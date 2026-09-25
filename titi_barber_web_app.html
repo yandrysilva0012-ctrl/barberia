@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Titi Barber | Agenda tu Cita en Tiempo Real</title>
+    <!-- Tailwind CSS v3 Script CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gold: {
+                            50: '#fffbeb',
+                            100: '#fef3c7',
+                            300: '#fde047',
+                            400: '#facc15',
+                            500: '#eab308',
+                            600: '#ca8a04',
+                            700: '#a16207',
+                            800: '#854d0e',
+                            900: '#713f12',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+
+    <style>
+        body {
+            background-color: #000000 !important;
+            color: #fef3c7;
+        }
+        .text-gold-gradient {
+            background: linear-gradient(135deg, #fffbeb 0%, #facc15 50%, #ca8a04 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .bg-gold-gradient {
+            background: linear-gradient(135deg, #fde047 0%, #eab308 50%, #a16207 100%);
+        }
+        .bg-gold-gradient:hover {
+            background: linear-gradient(135deg, #fef3c7 0%, #ca8a04 50%, #854d0e 100%);
+        }
+        .border-gold {
+            border-color: rgba(234, 179, 8, 0.4);
+        }
+        .border-gold-strong {
+            border-color: rgba(234, 179, 8, 0.8);
+        }
+        .shadow-gold {
+            box-shadow: 0 0 25px rgba(234, 179, 8, 0.2);
+        }
+        .shadow-gold-lg {
+            box-shadow: 0 0 40px rgba(234, 179, 8, 0.35);
+        }
+        /* Scrollbar personalización */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #09090b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #27272a;
+            border-radius: 4px;
+            border: 1px solid rgba(234, 179, 8, 0.3);
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ca8a04;
+        }
+    </style>
+</head>
+<body class="bg-black text-amber-100 min-h-screen flex flex-col font-sans selection:bg-amber-500 selection:text-black">
+
+    <!-- Header Pegajoso -->
+    <header class="bg-black/95 backdrop-blur-md border-b border-gold p-4 sticky top-0 z-40 flex justify-between items-center shadow-gold">
+        <div class="flex items-center space-x-3">
+            <button onclick="toggleSidebar()" class="p-2.5 rounded-xl bg-zinc-950 hover:bg-zinc-900 transition text-amber-400 border border-gold focus:outline-none cursor-pointer shadow-sm active:scale-95">
+                <i class="fa-solid fa-bars text-lg"></i>
+            </button>
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-gold-gradient p-0.5 flex items-center justify-center shadow-gold">
+                    <div class="w-full h-full bg-black rounded-[10px] flex items-center justify-center">
+                        <i class="fa-solid fa-scissors text-amber-400 text-sm"></i>
+                    </div>
+                </div>
+                <h1 class="text-lg font-black tracking-widest text-gold-gradient uppercase">Titi Barber</h1>
+            </div>
+        </div>
+        
+        <!-- Estado en vivo del Barbero en Header -->
+        <div id="headerEstadoBadge" class="text-xs px-3.5 py-1.5 rounded-full font-bold bg-zinc-950 text-red-500 border border-red-900 uppercase tracking-widest shadow-inner flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+            <span id="headerEstadoTxt">Cerrado</span>
+        </div>
+    </header>
+
+    <!-- Sidebar Deslizable -->
+    <aside id="sidebar" class="fixed inset-y-0 left-0 w-80 bg-black border-r border-gold z-50 transform -translate-x-full transition-transform duration-300 ease-in-out p-6 flex flex-col justify-between shadow-2xl">
+        <div class="space-y-6">
+            <div class="flex justify-between items-center border-b border-gold pb-4">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-crown text-amber-400"></i>
+                    <span class="text-amber-400 font-black text-sm uppercase tracking-wider">Menú Principal</span>
+                </div>
+                <button onclick="toggleSidebar()" class="text-amber-500 hover:text-white font-bold text-2xl cursor-pointer p-1">&times;</button>
+            </div>
+            
+            <nav class="space-y-3">
+                <button onclick="navegarA('vistaCliente')" class="w-full text-left px-4 py-3.5 rounded-xl bg-zinc-950 hover:bg-zinc-900 transition font-bold text-xs text-amber-300 border border-gold cursor-pointer flex items-center gap-3 active:scale-98">
+                    <i class="fa-solid fa-calendar-check text-base text-amber-400"></i> 📅 Agendar Cita
+                </button>
+                <button onclick="navegarA('vistaGaleriaCliente')" class="w-full text-left px-4 py-3.5 rounded-xl bg-zinc-950 hover:bg-zinc-900 transition font-bold text-xs text-amber-300 border border-gold cursor-pointer flex items-center gap-3 active:scale-98">
+                    <i class="fa-solid fa-images text-base text-amber-400"></i> ✂️ Galería de Cortes
+                </button>
+                <button id="btnMenuAdmin" onclick="gestionarAccesoAdmin()" class="w-full text-left px-4 py-3.5 rounded-xl bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition font-bold text-xs border border-gold cursor-pointer flex items-center gap-3 active:scale-98">
+                    <i class="fa-solid fa-user-shield text-base"></i> 🔒 Panel Administrador
+                </button>
+            </nav>
+
+            <div class="p-4 bg-zinc-950 rounded-2xl border border-gold/40 text-xs space-y-2">
+                <div class="flex items-center gap-2 text-amber-400 font-bold">
+                    <i class="fa-solid fa-wifi text-green-400 text-xs animate-ping"></i>
+                    <span>Sincronización en Vivo</span>
+                </div>
+                <p class="text-amber-200/60 text-[11px] leading-relaxed">
+                    Los cambios de disponibilidad y turnos se actualizan al instante sin recargar.
+                </p>
+            </div>
+        </div>
+
+        <div class="text-[11px] text-amber-600/80 text-center border-t border-zinc-900 pt-4 font-semibold uppercase tracking-widest">
+            Titi Barber &copy; 2026 &bull; Realtime VIP
+        </div>
+    </aside>
+
+    <!-- Overlay oscuro -->
+    <div id="overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/80 z-40 hidden transition-opacity backdrop-blur-xs"></div>
+
+    <!-- Contenido Principal SPA -->
+    <main class="max-w-3xl w-full mx-auto p-4 md:p-6 space-y-6 flex-grow">
+
+        <!-- ================= VISTA CLIENTE (RESERVAS) ================= -->
+        <section id="vistaCliente" class="space-y-6">
+            
+            <!-- Banner Principal de Barbería -->
+            <div class="bg-black p-6 md:p-8 rounded-3xl border border-gold text-center shadow-gold space-y-5 relative overflow-hidden">
+                <div class="absolute -top-32 -right-32 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="absolute -bottom-32 -left-32 w-64 h-64 bg-amber-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div class="flex justify-center mb-2">
+                    <div class="p-2 bg-zinc-950 rounded-2xl border border-gold shadow-2xl inline-block relative group">
+                        <img id="imgLogoBarberia" src="Gemini_Generated_Image_2upozu2upozu2upo.jpg" alt="Titi Barber Logo Oficial" 
+                             class="w-40 h-40 md:w-52 md:h-52 object-cover rounded-xl border border-gold/60 shadow-inner transition duration-300 group-hover:scale-102"
+                             onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=500&auto=format&fit=crop&q=80';">
+                        <div class="absolute inset-0 rounded-xl ring-1 ring-amber-400/30 pointer-events-none"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <span class="text-[11px] uppercase tracking-widest px-4 py-1.5 rounded-full bg-amber-500/10 text-amber-400 font-bold border border-gold inline-block shadow-inner">
+                        ✨ Reserva Exclusiva &bull; Estilo & Estampa
+                    </span>
+                </div>
+                
+                <h2 class="text-3xl md:text-4xl font-black tracking-tight text-gold-gradient">Agenda tu Turno</h2>
+                
+                <div class="flex justify-center pt-1">
+                    <div id="bannerEstadoBarbero" class="text-xs px-4 py-1.5 rounded-full font-bold bg-zinc-950 text-red-500 border border-red-900 uppercase tracking-wider flex items-center gap-2 shadow-md">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                        <span id="bannerEstadoTxt">Barbero No Disponible</span>
+                    </div>
+                </div>
+                
+                <div class="flex flex-wrap justify-center gap-3 pt-2">
+                    <div class="inline-flex items-center gap-2 bg-zinc-950 px-4 py-2 rounded-xl border border-gold text-xs text-amber-200/90 shadow-inner">
+                        <i class="fa-regular fa-calendar text-amber-400"></i>
+                        <span>Fecha:</span>
+                        <span id="fechaActualTxt" class="font-bold text-amber-400">--/--/----</span>
+                    </div>
+                    <button onclick="navegarA('vistaGaleriaCliente')" class="inline-flex items-center gap-2 bg-gold-gradient text-black px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider shadow-gold hover:opacity-95 transition cursor-pointer active:scale-95">
+                        <i class="fa-solid fa-scissors"></i> Ver Galería de Cortes
+                    </button>
+                </div>
+            </div>
+
+            <!-- Formulario de Reserva -->
+            <div class="bg-black p-6 md:p-8 rounded-3xl border border-gold shadow-gold space-y-6 relative">
+                <div class="flex justify-between items-center border-b border-gold pb-4">
+                    <h3 class="text-base font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-user-pen text-amber-400"></i>
+                        <span>Detalles de la Cita</span>
+                    </h3>
+                    <span id="lblPrecioCorte" class="text-gold-gradient font-black text-xl">$10 USD</span>
+                </div>
+
+                <form id="formReserva" onsubmit="procesarReservaCliente(event)" class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-amber-400/80 mb-2">Tu Nombre y Apellido:</label>
+                        <input type="text" id="nombreCliente" required placeholder="Ej. Carlos Mendoza" 
+                               class="w-full p-3.5 rounded-xl bg-zinc-950 border border-gold text-amber-100 placeholder-amber-700/50 focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 text-sm transition shadow-inner">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-amber-400/80 mb-2">Selecciona la Hora Disponible:</label>
+                        <select id="horaSeleccionada" required class="w-full p-3.5 rounded-xl bg-zinc-950 border border-gold text-amber-400 font-bold focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 text-sm transition shadow-inner cursor-pointer">
+                            <option value="">Cargando horarios...</option>
+                        </select>
+                        <p class="text-[11px] text-amber-600 mt-2 font-medium flex items-center gap-1">
+                            <i class="fa-solid fa-circle-info"></i>
+                            <span>Las horas marcadas en <strong class="text-red-500">rojo (Ocupada)</strong> no se pueden seleccionar.</span>
+                        </p>
+                    </div>
+
+                    <!-- Datos de Pago Móvil e Instrucciones -->
+                    <div class="p-4 md:p-5 bg-zinc-950 rounded-2xl border border-gold space-y-4 shadow-inner">
+                        <div class="flex justify-between items-center">
+                            <h4 id="lblTituloPago" class="font-bold text-amber-400 text-xs uppercase tracking-wider flex items-center gap-2">
+                                <i class="fa-solid fa-mobile-screen-button text-amber-400"></i>
+                                <span>Datos para Pago Móvil</span>
+                            </h4>
+                            <span class="text-[10px] bg-black text-amber-400 px-2.5 py-1 rounded-md font-bold border border-gold uppercase">Tasa Oficial</span>
+                        </div>
+                        <p class="text-xs text-amber-200/70 leading-relaxed">
+                            Efectúa tu pago con la información detallada a continuación para asegurar tu turno:
+                        </p>
+                        
+                        <div class="flex flex-col sm:flex-row items-center gap-4 bg-black p-4 rounded-xl border border-gold/60">
+                            <div class="bg-white p-2 rounded-xl shadow-md shrink-0 flex flex-col items-center">
+                                <img id="imgCodigoQR" src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=PagoMovilTitiBarber" alt="QR Pago Móvil" class="w-24 h-24">
+                                <span class="text-[9px] text-black font-extrabold mt-1 uppercase">Escanear QR</span>
+                            </div>
+                            <div class="text-xs space-y-1.5 text-amber-200 w-full">
+                                <p><strong class="text-amber-400">Banco:</strong> Banco Mercantil (0105)</p>
+                                <p><strong class="text-amber-400">Cédula / RIF:</strong> V-12.345.678</p>
+                                <p><strong class="text-amber-400">Teléfono:</strong> <span id="lblTelefonoBarbero" class="text-amber-300 font-extrabold">+58 412-1234567</span></p>
+                                <p><strong class="text-amber-400">Monto:</strong> <span id="lblMontoPago" class="text-gold-gradient font-bold">$10 USD</span></p>
+                            </div>
+                        </div>
+
+                        <div class="bg-amber-500/10 border border-gold/80 p-3 rounded-xl text-amber-300 text-xs font-semibold text-center shadow-inner flex items-center justify-center gap-2">
+                            <i class="fa-brands fa-whatsapp text-green-400 text-base"></i>
+                            <span>Envía tu comprobante por WhatsApp indicando tu Nombre y Hora agendada.</span>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btnAgendarSubmit" class="w-full py-4 bg-gold-gradient text-black font-black uppercase tracking-wider rounded-xl transition cursor-pointer shadow-gold hover:opacity-95 active:scale-98 flex items-center justify-center gap-2 text-sm">
+                        <i class="fa-solid fa-check-circle"></i>
+                        <span>Confirmar y Agendar Cita</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Mis Citas Agendadas -->
+            <div class="bg-black p-6 md:p-8 rounded-3xl border border-gold shadow-gold space-y-4">
+                <div class="flex justify-between items-center border-b border-gold pb-3">
+                    <h3 class="text-base font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        <span>Estado de mis Solicitudes</span>
+                    </h3>
+                    <span class="text-[10px] text-amber-500/80 font-bold uppercase">Actualizado en vivo</span>
+                </div>
+                <div id="listaMisCitas" class="space-y-3">
+                    <p class="text-xs text-amber-600/80 italic py-2">No tienes citas registradas en este dispositivo.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= VISTA GALERÍA PÚBLICA ================= -->
+        <section id="vistaGaleriaCliente" class="space-y-6 hidden">
+            <div class="bg-black p-6 md:p-8 rounded-3xl border border-gold shadow-gold space-y-6">
+                <div class="flex justify-between items-center border-b border-gold pb-4 flex-wrap gap-3">
+                    <div>
+                        <h2 class="text-xl font-black text-gold-gradient uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-photo-film text-amber-400"></i>
+                            <span>Galería de Trabajos</span>
+                        </h2>
+                        <p class="text-xs text-amber-400/80 mt-1">Modelos y cortes de cabello realizados en Titi Barber.</p>
+                    </div>
+                    <button onclick="navegarA('vistaCliente')" class="px-4 py-2 bg-zinc-950 hover:bg-zinc-900 text-xs rounded-xl font-bold text-amber-400 border border-gold transition cursor-pointer flex items-center gap-2">
+                        <i class="fa-solid fa-arrow-left"></i> Volver a Agendar
+                    </button>
+                </div>
+
+                <!-- Cuadrícula de Galería -->
+                <div id="gridGaleriaPublica" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <p class="text-xs text-amber-600 italic col-span-2 text-center py-8">No hay fotos cargadas en la galería por el momento.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= VISTA LOGIN ADMIN ================= -->
+        <section id="vistaLoginAdmin" class="space-y-6 hidden">
+            <div class="bg-black p-6 md:p-8 rounded-3xl border border-gold shadow-gold max-w-md mx-auto space-y-6 relative overflow-hidden">
+                <div class="text-center space-y-2">
+                    <div class="w-12 h-12 rounded-2xl bg-gold-gradient p-0.5 mx-auto mb-3 shadow-gold flex items-center justify-center">
+                        <div class="w-full h-full bg-black rounded-[14px] flex items-center justify-center">
+                            <i class="fa-solid fa-lock text-amber-400 text-xl"></i>
+                        </div>
+                    </div>
+                    <h2 class="text-2xl font-black text-gold-gradient uppercase tracking-wider">Acceso de Barbero</h2>
+                    <p class="text-xs text-amber-400/80">Inicia sesión con las credenciales maestras de administración</p>
+                </div>
+
+                <form id="formLoginAdmin" onsubmit="procesarLoginAdmin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-amber-400 mb-1.5">Correo de Administrador:</label>
+                        <input type="email" id="emailAdmin" required value="titibarber@gmail.com" 
+                               class="w-full p-3.5 rounded-xl bg-zinc-950 border border-gold text-amber-100 text-sm focus:outline-none focus:border-amber-400 shadow-inner">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-amber-400 mb-1.5">Contraseña:</label>
+                        <input type="password" id="passAdmin" required placeholder="••••••••" 
+                               class="w-full p-3.5 rounded-xl bg-zinc-950 border border-gold text-amber-100 text-sm focus:outline-none focus:border-amber-400 shadow-inner">
+                    </div>
+                    <button type="submit" class="w-full py-3.5 bg-gold-gradient text-black font-black uppercase tracking-wider rounded-xl transition cursor-pointer shadow-gold hover:opacity-95 active:scale-98">
+                        Ingresar al Panel
+                    </button>
+                </form>
+
+                <div class="text-center pt-2">
+                    <button onclick="navegarA('vistaCliente')" class="text-xs text-amber-400 hover:text-white underline cursor-pointer font-semibold">
+                        ← Regresar a la Vista de Clientes
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= VISTA PANEL ADMINISTRADOR ================= -->
+        <section id="vistaAdmin" class="space-y-6 hidden">
+            <div class="bg-black p-6 md:p-8 rounded-3xl border border-gold shadow-gold space-y-6">
+                
+                <!-- Barra Superior de Control Barbero -->
+                <div class="flex justify-between items-center flex-wrap gap-4 border-b border-gold pb-4">
+                    <div>
+                        <h2 class="text-xl font-black text-gold-gradient uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-amber-400"></i>
+                            <span>Panel de Control Barbero</span>
+                        </h2>
+                        <p class="text-xs text-amber-400/80 mt-0.5">Gestión de barbería y citas en tiempo real.</p>
+                    </div>
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <button onclick="navegarA('vistaCliente')" class="px-3 py-2 bg-zinc-950 hover:bg-zinc-900 text-xs rounded-xl font-bold text-amber-400 border border-gold transition cursor-pointer">
+                            <i class="fa-solid fa-eye"></i> Vista Cliente
+                        </button>
+                        <button onclick="cerrarSesionAdmin()" class="px-3 py-2 bg-red-950/80 hover:bg-red-900 text-xs rounded-xl font-bold text-red-400 border border-red-900 transition cursor-pointer">
+                            Cerrar Sesión <i class="fa-solid fa-right-from-bracket"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SELECTOR DE ESTADO DEL BARBERO EN TIEMPO REAL -->
+                <div class="bg-zinc-950 p-5 rounded-2xl border border-gold space-y-3 shadow-inner">
+                    <div class="flex justify-between items-center flex-wrap gap-2">
+                        <h3 class="font-bold text-amber-400 text-xs uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-toggle-on text-amber-400 text-sm"></i>
+                            <span>Estado Actual del Barbero (Tiempo Real)</span>
+                        </h3>
+                        <span class="text-[11px] text-amber-500 font-semibold">Cambia el estado para todos los clientes</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                        <button onclick="cambiarEstadoBarbero('TRABAJANDO')" id="btnEstadoTrabajando" class="py-3 px-4 rounded-xl font-black text-xs uppercase transition border flex items-center justify-center gap-2 cursor-pointer">
+                            <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                            <span>🟢 Trabajando</span>
+                        </button>
+                        <button onclick="cambiarEstadoBarbero('DESCANSO')" id="btnEstadoDescanso" class="py-3 px-4 rounded-xl font-black text-xs uppercase transition border flex items-center justify-center gap-2 cursor-pointer">
+                            <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                            <span>🟡 En Descanso</span>
+                        </button>
+                        <button onclick="cambiarEstadoBarbero('CERRADO')" id="btnEstadoCerrado" class="py-3 px-4 rounded-xl font-black text-xs uppercase transition border flex items-center justify-center gap-2 cursor-pointer">
+                            <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                            <span>🔴 Cerrado</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SUBIR CORTES A LA GALERÍA -->
+                <div class="bg-zinc-950 p-5 rounded-2xl border border-gold space-y-4 shadow-inner">
+                    <h3 class="font-bold text-amber-400 text-xs uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-up text-amber-400"></i>
+                        <span>Publicar Corte en Galería</span>
+                    </h3>
+                    <form id="formSubirCorte" onsubmit="procesarSubirCorte(event)" class="space-y-3">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[11px] font-bold uppercase tracking-wider text-amber-400/80 mb-1">Cargar Foto Local (Archivo):</label>
+                                <input type="file" id="inputArchivoFoto" accept="image/*" 
+                                       class="w-full p-2.5 rounded-xl bg-black border border-gold text-xs text-amber-200 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-black hover:file:bg-amber-400 cursor-pointer shadow-inner">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold uppercase tracking-wider text-amber-400/80 mb-1">O Pegar Enlace/URL de Imagen:</label>
+                                <input type="url" id="inputUrlFoto" placeholder="https://ejemplo.com/corte.jpg" 
+                                       class="w-full p-2.5 rounded-xl bg-black border border-gold text-xs text-amber-100 shadow-inner focus:outline-none focus:border-amber-400">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase tracking-wider text-amber-400/80 mb-1">Título / Nombre del Estilo:</label>
+                            <input type="text" id="inputTituloFoto" required placeholder="Ej. Fade Bajo + Delineado de Barba" 
+                                   class="w-full p-2.5 rounded-xl bg-black border border-gold text-xs text-amber-100 shadow-inner focus:outline-none focus:border-amber-400">
+                        </div>
+                        <button type="submit" class="w-full bg-gold-gradient text-black text-xs px-4 py-3 rounded-xl font-black uppercase tracking-wider transition cursor-pointer shadow-gold hover:opacity-95 active:scale-98">
+                            Publicar Foto en la Galería
+                        </button>
+                    </form>
+
+                    <div class="pt-3 border-t border-zinc-900 space-y-2">
+                        <h4 class="font-bold text-amber-400 text-xs uppercase tracking-wider">Cortes Publicados:</h4>
+                        <div id="listaGaleriaAdmin" class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto p-1">
+                            <p class="text-xs text-amber-600 italic">No hay fotos en la galería.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CONFIGURACIÓN DE NEGOCIO -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- PRECIO Y HORARIO -->
+                    <div class="bg-zinc-950 p-4 rounded-2xl border border-gold space-y-3 shadow-inner">
+                        <h3 class="font-bold text-amber-400 text-xs uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-dollar-sign text-amber-400"></i>
+                            <span>Precio y Jornada</span>
+                        </h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-[11px] font-bold uppercase tracking-wider text-amber-400/80 mb-1">Precio del Corte ($USD):</label>
+                                <input type="number" id="inputPrecio" value="10" min="1" class="w-full p-2.5 rounded-xl bg-black border border-gold text-xs text-amber-100 font-bold shadow-inner">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[11px] font-bold uppercase tracking-wider text-amber-400/80 mb-1">Desde (Inicio):</label>
+                                    <input type="time" id="inputHoraInicio" value="10:00" class="w-full p-2 rounded-xl bg-black border border-gold text-xs text-amber-100 shadow-inner">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold uppercase tracking-wider text-amber-400/80 mb-1">Hasta (Fin):</label>
+                                    <input type="time" id="inputHoraFin" value="20:00" class="w-full p-2 rounded-xl bg-black border border-gold text-xs text-amber-100 shadow-inner">
+                                </div>
+                            </div>
+                            <button onclick="guardarAjustesJornadaAdmin()" class="w-full bg-gold-gradient text-black text-xs px-4 py-2.5 rounded-xl font-black uppercase tracking-wider transition cursor-pointer shadow-gold hover:opacity-95">
+                                Actualizar Configuración
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- CONTACTO Y ENLACE -->
+                    <div class="bg-zinc-950 p-4 rounded-2xl border border-gold space-y-3 shadow-inner">
+                        <h3 class="font-bold text-amber-400 text-xs uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-phone text-amber-400"></i>
+                            <span>Teléfono y Enlace Web</span>
+                        </h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-[11px] font-bold uppercase tracking-wider text-amber-400/80 mb-1">Teléfono Pago Móvil / WhatsApp:</label>
+                                <input type="text" id="inputTelefono" value="584121234567" class="w-full p-2.5 rounded-xl bg-black border border-gold text-xs text-amber-100 shadow-inner">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold uppercase tracking-wider text-amber-400/80 mb-1">Enlace para Compartir:</label>
+                                <div class="flex gap-2">
+                                    <input type="text" id="inputEnlaceCompartir" readonly class="w-full p-2.5 rounded-xl bg-black border border-gold text-xs text-amber-300/80 truncate shadow-inner">
+                                    <button onclick="copiarEnlaceWeb()" class="bg-zinc-900 hover:bg-zinc-800 px-3 py-2 rounded-xl text-xs font-bold text-amber-300 border border-gold transition shrink-0 cursor-pointer">
+                                        <i class="fa-regular fa-copy"></i> Copiar
+                                    </button>
+                                </div>
+                            </div>
+                            <button onclick="guardarContactoAdmin()" class="w-full bg-zinc-900 hover:bg-zinc-800 text-amber-300 text-xs px-4 py-2.5 rounded-xl font-bold uppercase tracking-wider border border-gold transition cursor-pointer">
+                                Actualizar Teléfono
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GESTIÓN DE CITAS Y RESERVAS DE CLIENTES -->
+                <div class="space-y-4 pt-2">
+                    <div class="flex justify-between items-center flex-wrap gap-2 border-b border-gold pb-3">
+                        <h3 class="font-bold text-gold-gradient text-sm uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-amber-400"></i>
+                            <span>Solicitudes y Citas de Clientes</span>
+                        </h3>
+                        <button onclick="limpiarCitasDelDia()" class="text-xs bg-red-950/80 text-red-400 hover:bg-red-900 border border-red-900 px-3 py-1.5 rounded-xl font-bold transition cursor-pointer">
+                            <i class="fa-solid fa-trash-can"></i> Limpiar Citas Finalizadas
+                        </button>
+                    </div>
+
+                    <div id="listaCitasAdmin" class="space-y-3 max-h-96 overflow-y-auto p-1">
+                        <p class="text-xs text-amber-600 italic">No hay citas registradas por el momento.</p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal Lightbox Ampliador de Galería -->
+    <div id="modalLightbox" onclick="cerrarLightbox()" class="fixed inset-0 bg-black/90 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="max-w-2xl w-full bg-zinc-950 rounded-3xl border border-gold overflow-hidden p-2 relative shadow-2xl" onclick="event.stopPropagation()">
+            <button onclick="cerrarLightbox()" class="absolute top-4 right-4 bg-black/80 text-amber-400 hover:text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-lg border border-gold z-10 cursor-pointer">&times;</button>
+            <img id="imgLightbox" src="" alt="Corte Ampliado" class="w-full max-h-[75vh] object-contain rounded-2xl">
+            <p id="lblLightboxTitulo" class="text-center text-sm font-bold text-gold-gradient mt-3 mb-1"></p>
+        </div>
+    </div>
+
+    <!-- SCRIPT PRINCIPAL Y MOTOR DE TIEMPO REAL -->
+    <script>
+        // Credenciales y Claves Maestras
+        const ADMIN_CORREO = "titibarber@gmail.com";
+        const ADMIN_CLAVE = "9010";
+        const ADMIN_SESION_KEY = "titibarber_admin_logged";
+
+        // Estructura de Datos del Estado de la Plataforma
+        let appState = {
+            config: {
+                estadoBarbero: 'TRABAJANDO', // TRABAJANDO, DESCANSO, CERRADO
+                telefono: '584121234567',
+                precioUSD: '10',
+                horaInicio: '10:00',
+                horaFin: '20:00'
+            },
+            citas: [],
+            galeria: []
+        };
+
+        // Canal de sincronización local para navegadores múltiples en vivo
+        const broadcastChannel = new BroadcastChannel('titi_barber_realtime_channel');
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Asignar URL para compartir
+            const inputEnlace = document.getElementById('inputEnlaceCompartir');
+            if (inputEnlace) inputEnlace.value = window.location.href;
+
+            // Cargar datos persistentes guardados o por defecto
+            cargarDatosGuardados();
+
+            // Sincronizar UI
+            actualizarUICompleta();
+
+            // Escuchar cambios de otras pestañas o ventanas en tiempo real
+            broadcastChannel.onmessage = function(event) {
+                if (event.data && event.data.type === 'SYNC_STATE') {
+                    appState = event.data.state;
+                    guardarEstadoLocal(false);
+                    actualizarUICompleta();
+                }
+            };
+        });
+
+        // Cargar datos locales de respaldo
+        function cargarDatosGuardados() {
+            const configGuardada = localStorage.getItem('titibarber_config');
+            const citasGuardadas = localStorage.getItem('titibarber_citas');
+            const galeriaGuardada = localStorage.getItem('titibarber_galeria');
+
+            if (configGuardada) appState.config = JSON.parse(configGuardada);
+            if (citasGuardadas) appState.citas = JSON.parse(citasGuardadas);
+            if (galeriaGuardada) appState.galeria = JSON.parse(galeriaGuardada);
+
+            // Si la galería está vacía, agregar muestras predeterminadas
+            if (appState.galeria.length === 0) {
+                appState.galeria = [
+                    { id: 'g1', titulo: 'Fade Alto con Sombras', url: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=500&auto=format&fit=crop&q=80' },
+                    { id: 'g2', titulo: 'Corte Ejecutivo & Barba', url: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=500&auto=format&fit=crop&q=80' }
+                ];
+            }
+        }
+
+        // Guardar estado local y transmitir a otras ventanas
+        function guardarEstadoLocal(transmitir = true) {
+            localStorage.setItem('titibarber_config', JSON.stringify(appState.config));
+            localStorage.setItem('titibarber_citas', JSON.stringify(appState.citas));
+            localStorage.setItem('titibarber_galeria', JSON.stringify(appState.galeria));
+
+            if (transmitir) {
+                broadcastChannel.postMessage({ type: 'SYNC_STATE', state: appState });
+            }
+        }
+
+        function actualizarUICompleta() {
+            actualizarBannerYHeaderEstado();
+            actualizarConfiguracionPreciosYContacto();
+            generarHorariosDisponibles();
+            renderizarMisCitasCliente();
+            renderizarGaleriaCliente();
+
+            if (localStorage.getItem(ADMIN_SESION_KEY) === 'true') {
+                renderizarCitasAdmin();
+                renderizarGaleriaAdmin();
+                actualizarEstadoBotonesAdmin();
+            }
+        }
+
+        function actualizarBannerYHeaderEstado() {
+            const estado = appState.config.estadoBarbero;
+            const headerBadge = document.getElementById('headerEstadoBadge');
+            const headerTxt = document.getElementById('headerEstadoTxt');
+            const bannerBadge = document.getElementById('bannerEstadoBarbero');
+            const bannerTxt = document.getElementById('bannerEstadoTxt');
+            const fechaTxt = document.getElementById('fechaActualTxt');
+
+            // Formatear Fecha Actual
+            const hoy = new Date();
+            const opcionesFecha = { weekday: 'short', day: 'numeric', month: 'short' };
+            if (fechaTxt) fechaTxt.innerText = hoy.toLocaleDateString('es-ES', opcionesFecha).toUpperCase();
+
+            let colorBadge = '';
+            let textoEstado = '';
+
+            if (estado === 'TRABAJANDO') {
+                textoEstado = '🟢 Abierto / Atendiendo';
+                colorBadge = 'text-green-400 border-green-800 bg-zinc-950';
+            } else if (estado === 'DESCANSO') {
+                textoEstado = '🟡 En Descanso Breve';
+                colorBadge = 'text-yellow-400 border-yellow-800 bg-zinc-950';
+            } else {
+                textoEstado = '🔴 Cerrado / Fuera de Servicio';
+                colorBadge = 'text-red-500 border-red-900 bg-zinc-950';
+            }
+
+            if (headerBadge && headerTxt) {
+                headerBadge.className = `text-xs px-3.5 py-1.5 rounded-full font-bold uppercase tracking-widest border shadow-inner flex items-center gap-2 ${colorBadge}`;
+                headerTxt.innerText = textoEstado;
+            }
+
+            if (bannerBadge && bannerTxt) {
+                bannerBadge.className = `text-xs px-4 py-1.5 rounded-full font-bold uppercase tracking-wider border flex items-center gap-2 shadow-md ${colorBadge}`;
+                bannerTxt.innerText = textoEstado;
+            }
+        }
+
+        function actualizarConfiguracionPreciosYContacto() {
+            const precioUSD = appState.config.precioUSD;
+            const telefono = appState.config.telefono;
+
+            document.getElementById('lblPrecioCorte').innerText = `$${precioUSD} USD`;
+            document.getElementById('lblTituloPago').innerHTML = `<i class="fa-solid fa-mobile-screen-button text-amber-400"></i> Datos Pago Móvil ($${precioUSD} USD)`;
+            document.getElementById('lblMontoPago').innerText = `$${precioUSD} USD`;
+            document.getElementById('lblTelefonoBarbero').innerText = `+${telefono}`;
+
+            // Actualizar QR Dinámico
+            const qrImg = document.getElementById('imgCodigoQR');
+            if (qrImg) {
+                qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=PagoMovilTitiBarber_${telefono}_${precioUSD}USD`;
+            }
+
+            // Inputs panel admin
+            document.getElementById('inputPrecio').value = precioUSD;
+            document.getElementById('inputHoraInicio').value = appState.config.horaInicio;
+            document.getElementById('inputHoraFin').value = appState.config.horaFin;
+            document.getElementById('inputTelefono').value = telefono;
+        }
+
+        function generarHorariosDisponibles() {
+            const selectHora = document.getElementById('horaSeleccionada');
+            if (!selectHora) return;
+
+            const citasOcupadas = appState.citas
+                .filter(c => c.estado === 'Pendiente' || c.estado === 'Confirmada')
+                .map(c => c.hora);
+
+            let [hInicio, mInicio] = appState.config.horaInicio.split(':').map(Number);
+            let [hFin, mFin] = appState.config.horaFin.split(':').map(Number);
+
+            let minInicio = hInicio * 60 + mInicio;
+            let minFin = hFin * 60 + mFin;
+
+            let html = '<option value="">-- Selecciona una Hora --</option>';
+
+            while (minInicio <= minFin) {
+                let h = Math.floor(minInicio / 60);
+                let m = minInicio % 60;
+
+                let ampm = h >= 12 ? 'PM' : 'AM';
+                let h12 = h % 12 === 0 ? 12 : h % 12;
+                let mStr = m < 10 ? '0' + m : m;
+                let horaFormato = `${h12}:${mStr} ${ampm}`;
+
+                let estaOcupado = citasOcupadas.includes(horaFormato);
+
+                if (estaOcupado) {
+                    html += `<option value="${horaFormato}" disabled class="text-red-500 bg-black font-bold">🔴 ${horaFormato} (Ocupada)</option>`;
+                } else {
+                    html += `<option value="${horaFormato}" class="text-amber-400 bg-black font-semibold">🟢 ${horaFormato} (Disponible)</option>`;
+                }
+
+                minInicio += 60; // Intervalos de 1 hora
+            }
+
+            selectHora.innerHTML = html;
+        }
+
+        function procesarReservaCliente(event) {
+            event.preventDefault();
+
+            if (appState.config.estadoBarbero === 'CERRADO') {
+                alert('⚠️ La barbería se encuentra cerrada en este momento. Por favor agenda cuando esté en servicio.');
+                return;
+            }
+
+            const nombre = document.getElementById('nombreCliente').value.trim();
+            const hora = document.getElementById('horaSeleccionada').value;
+
+            if (!nombre || !hora) {
+                alert('Por favor completa tu nombre y selecciona una hora válida.');
+                return;
+            }
+
+            const nuevaCita = {
+                id: 'cita_' + Date.now(),
+                nombre: nombre,
+                hora: hora,
+                monto: appState.config.precioUSD,
+                fecha: new Date().toLocaleDateString('es-ES'),
+                estado: 'Pendiente', // Pendiente, Confirmada, Completada, Cancelada
+                creadoEn: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+            };
+
+            appState.citas.push(nuevaCita);
+            guardarEstadoLocal(true);
+            actualizarUICompleta();
+
+            // Generar enlace directo a WhatsApp con el formato requerido
+            const mensajeWS = encodeURIComponent(`Hola Titi Barber 👋, acabo de agendar una cita.\n\n👤 *Nombre:* ${nombre}\n⏰ *Hora:* ${hora}\n💵 *Monto:* $${appState.config.precioUSD} USD\n\nAdjunto mi comprobante de Pago Móvil.`);
+            const urlWhatsApp = `https://wa.me/${appState.config.telefono}?text=${mensajeWS}`;
+
+            // Limpiar formulario y notificar
+            document.getElementById('nombreCliente').value = '';
+            document.getElementById('horaSeleccionada').value = '';
+
+            alert('✅ Cita Agendada Exitosamente. Redirigiendo a WhatsApp para enviar comprobante...');
+            window.open(urlWhatsApp, '_blank');
+        }
+
+        function renderizarMisCitasCliente() {
+            const contenedor = document.getElementById('listaMisCitas');
+            if (!contenedor) return;
+
+            if (appState.citas.length === 0) {
+                contenedor.innerHTML = '<p class="text-xs text-amber-600/80 italic py-2">No hay citas registradas en este dispositivo.</p>';
+                return;
+            }
+
+            let html = '';
+            // Mostrar de más recientes a antiguas
+            [...appState.citas].reverse().forEach(cita => {
+                let badgeClass = '';
+                let estadoTexto = cita.estado;
+
+                if (cita.estado === 'Pendiente') badgeClass = 'bg-yellow-500/10 text-yellow-400 border-yellow-800';
+                else if (cita.estado === 'Confirmada') badgeClass = 'bg-green-500/10 text-green-400 border-green-800';
+                else if (cita.estado === 'Completada') badgeClass = 'bg-blue-500/10 text-blue-400 border-blue-800';
+                else badgeClass = 'bg-red-500/10 text-red-400 border-red-900';
+
+                html += `
+                    <div class="p-3.5 bg-zinc-950 rounded-xl border border-gold/50 flex justify-between items-center flex-wrap gap-2 shadow-inner">
+                        <div class="space-y-1">
+                            <p class="text-xs font-black text-amber-300 uppercase">${cita.nombre}</p>
+                            <p class="text-[11px] text-amber-200/70">
+                                <i class="fa-regular fa-clock text-amber-400"></i> ${cita.hora} &bull; $${cita.monto} USD
+                            </p>
+                        </div>
+                        <span class="text-[10px] font-bold px-3 py-1 rounded-full border uppercase ${badgeClass}">
+                            ${estadoTexto}
+                        </span>
+                    </div>
+                `;
+            });
+
+            contenedor.innerHTML = html;
+        }
+
+        function renderizarGaleriaCliente() {
+            const grid = document.getElementById('gridGaleriaPublica');
+            if (!grid) return;
+
+            if (appState.galeria.length === 0) {
+                grid.innerHTML = '<p class="text-xs text-amber-600 italic col-span-2 text-center py-8">No hay fotos cargadas en la galería por el momento.</p>';
+                return;
+            }
+
+            let html = '';
+            appState.galeria.forEach(item => {
+                html += `
+                    <div onclick="abrirLightbox('${item.url}', '${item.titulo}')" class="bg-zinc-950 rounded-2xl border border-gold overflow-hidden shadow-gold group cursor-pointer transition duration-300 hover:scale-[1.02]">
+                        <div class="h-48 overflow-hidden relative">
+                            <img src="${item.url}" alt="${item.titulo}" class="w-full h-full object-cover transition duration-500 group-hover:scale-110" onerror="this.src='https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=500&auto=format&fit=crop&q=80'">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-80"></div>
+                            <span class="absolute bottom-3 left-3 text-xs font-black text-gold-gradient uppercase tracking-wider">${item.titulo}</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            grid.innerHTML = html;
+        }
+
+        function abrirLightbox(url, titulo) {
+            document.getElementById('imgLightbox').src = url;
+            document.getElementById('lblLightboxTitulo').innerText = titulo;
+            document.getElementById('modalLightbox').classList.remove('hidden');
+        }
+
+        function cerrarLightbox() {
+            document.getElementById('modalLightbox').classList.add('hidden');
+        }
+
+        function procesarLoginAdmin(event) {
+            event.preventDefault();
+            const email = document.getElementById('emailAdmin').value.trim();
+            const pass = document.getElementById('passAdmin').value;
+
+            if (email === ADMIN_CORREO && pass === ADMIN_CLAVE) {
+                localStorage.setItem(ADMIN_SESION_KEY, 'true');
+                document.getElementById('passAdmin').value = '';
+                navegarA('vistaAdmin');
+                actualizarUICompleta();
+            } else {
+                alert('❌ Credenciales Incorrectas. Verifica el correo y la contraseña.');
+            }
+        }
+
+        function cerrarSesionAdmin() {
+            localStorage.removeItem(ADMIN_SESION_KEY);
+            navegarA('vistaCliente');
+        }
+
+        function gestionarAccesoAdmin() {
+            if (localStorage.getItem(ADMIN_SESION_KEY) === 'true') {
+                navegarA('vistaAdmin');
+            } else {
+                navegarA('vistaLoginAdmin');
+            }
+            toggleSidebar(false);
+        }
+
+        function cambiarEstadoBarbero(nuevoEstado) {
+            appState.config.estadoBarbero = nuevoEstado;
+            guardarEstadoLocal(true);
+            actualizarUICompleta();
+        }
+
+        function actualizarEstadoBotonesAdmin() {
+            const est = appState.config.estadoBarbero;
+            const btnTrabajando = document.getElementById('btnEstadoTrabajando');
+            const btnDescanso = document.getElementById('btnEstadoDescanso');
+            const btnCerrado = document.getElementById('btnEstadoCerrado');
+
+            btnTrabajando.className = `py-3 px-4 rounded-xl font-black text-xs uppercase transition border flex items-center justify-center gap-2 cursor-pointer ${est === 'TRABAJANDO' ? 'bg-green-500/20 text-green-400 border-green-500 shadow-gold' : 'bg-black text-zinc-500 border-zinc-800'}`;
+            btnDescanso.className = `py-3 px-4 rounded-xl font-black text-xs uppercase transition border flex items-center justify-center gap-2 cursor-pointer ${est === 'DESCANSO' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500 shadow-gold' : 'bg-black text-zinc-500 border-zinc-800'}`;
+            btnCerrado.className = `py-3 px-4 rounded-xl font-black text-xs uppercase transition border flex items-center justify-center gap-2 cursor-pointer ${est === 'CERRADO' ? 'bg-red-500/20 text-red-500 border-red-500 shadow-gold' : 'bg-black text-zinc-500 border-zinc-800'}`;
+        }
+
+        // Subir fotos a la galería
+        function procesarSubirCorte(event) {
+            event.preventDefault();
+            const archivoInput = document.getElementById('inputArchivoFoto');
+            const urlInput = document.getElementById('inputUrlFoto').value.trim();
+            const titulo = document.getElementById('inputTituloFoto').value.trim();
+
+            if (!titulo) {
+                alert('Debes escribir un título o descripción para el corte.');
+                return;
+            }
+
+            if (archivoInput.files && archivoInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const nuevaFoto = {
+                        id: 'foto_' + Date.now(),
+                        titulo: titulo,
+                        url: e.target.result
+                    };
+                    appState.galeria.unshift(nuevaFoto);
+                    guardarEstadoLocal(true);
+                    actualizarUICompleta();
+                    limpiarFormGaleria();
+                };
+                reader.readAsDataURL(archivoInput.files[0]);
+            } else if (urlInput) {
+                const nuevaFoto = {
+                    id: 'foto_' + Date.now(),
+                    titulo: titulo,
+                    url: urlInput
+                };
+                appState.galeria.unshift(nuevaFoto);
+                guardarEstadoLocal(true);
+                actualizarUICompleta();
+                limpiarFormGaleria();
+            } else {
+                alert('Selecciona un archivo de foto local o ingresa un enlace URL.');
+            }
+        }
+
+        function limpiarFormGaleria() {
+            document.getElementById('inputArchivoFoto').value = '';
+            document.getElementById('inputUrlFoto').value = '';
+            document.getElementById('inputTituloFoto').value = '';
+        }
+
+        function eliminarFotoGaleria(id) {
+            if (confirm('¿Deseas eliminar este corte de la galería?')) {
+                appState.galeria = appState.galeria.filter(item => item.id !== id);
+                guardarEstadoLocal(true);
+                actualizarUICompleta();
+            }
+        }
+
+        function renderizarGaleriaAdmin() {
+            const contenedor = document.getElementById('listaGaleriaAdmin');
+            if (!contenedor) return;
+
+            if (appState.galeria.length === 0) {
+                contenedor.innerHTML = '<p class="text-xs text-amber-600 italic">No hay fotos publicadas.</p>';
+                return;
+            }
+
+            let html = '';
+            appState.galeria.forEach(item => {
+                html += `
+                    <div class="p-2 bg-black rounded-xl border border-gold/50 flex items-center justify-between gap-3 shadow-inner">
+                        <div class="flex items-center gap-2 overflow-hidden">
+                            <img src="${item.url}" class="w-10 h-10 object-cover rounded-lg shrink-0 border border-gold/40">
+                            <span class="text-xs font-bold text-amber-300 truncate">${item.titulo}</span>
+                        </div>
+                        <button onclick="eliminarFotoGaleria('${item.id}')" class="text-red-400 hover:text-red-300 p-1.5 text-xs font-bold shrink-0 cursor-pointer">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+            });
+
+            contenedor.innerHTML = html;
+        }
+
+        // Configuración de Jornada y Pagos
+        function guardarAjustesJornadaAdmin() {
+            const precio = document.getElementById('inputPrecio').value;
+            const hIni = document.getElementById('inputHoraInicio').value;
+            const hFin = document.getElementById('inputHoraFin').value;
+
+            appState.config.precioUSD = precio;
+            appState.config.horaInicio = hIni;
+            appState.config.horaFin = hFin;
+
+            guardarEstadoLocal(true);
+            actualizarUICompleta();
+            alert('✅ Jornada y Precio actualizados.');
+        }
+
+        function guardarContactoAdmin() {
+            const tel = document.getElementById('inputTelefono').value.trim();
+            appState.config.telefono = tel;
+
+            guardarEstadoLocal(true);
+            actualizarUICompleta();
+            alert('✅ Teléfono de Pago Móvil/WhatsApp actualizado.');
+        }
+
+        function copiarEnlaceWeb() {
+            const input = document.getElementById('inputEnlaceCompartir');
+            input.select();
+            document.execCommand('copy');
+            alert('📋 Enlace copiado al portapapeles.');
+        }
+
+        // Gestión de Citas
+        function cambiarEstadoCitaAdmin(idCita, nuevoEstado) {
+            const idx = appState.citas.findIndex(c => c.id === idCita);
+            if (idx !== -1) {
+                appState.citas[idx].estado = nuevoEstado;
+                guardarEstadoLocal(true);
+                actualizarUICompleta();
+            }
+        }
+
+        function limpiarCitasDelDia() {
+            if (confirm('¿Deseas borrar las citas completadas y canceladas de la vista?')) {
+                appState.citas = appState.citas.filter(c => c.estado === 'Pendiente' || c.estado === 'Confirmada');
+                guardarEstadoLocal(true);
+                actualizarUICompleta();
+            }
+        }
+
+        function renderizarCitasAdmin() {
+            const contenedor = document.getElementById('listaCitasAdmin');
+            if (!contenedor) return;
+
+            if (appState.citas.length === 0) {
+                contenedor.innerHTML = '<p class="text-xs text-amber-600 italic">No hay citas registradas en el sistema.</p>';
+                return;
+            }
+
+            let html = '';
+            [...appState.citas].reverse().forEach(cita => {
+                html += `
+                    <div class="p-4 bg-black rounded-2xl border border-gold/70 space-y-3 shadow-gold">
+                        <div class="flex justify-between items-start flex-wrap gap-2">
+                            <div>
+                                <h4 class="text-sm font-black text-gold-gradient uppercase">${cita.nombre}</h4>
+                                <p class="text-xs text-amber-200/80">
+                                    <i class="fa-regular fa-clock text-amber-400"></i> ${cita.hora} &bull; 💵 $${cita.monto} USD
+                                </p>
+                            </div>
+                            <span class="text-[10px] font-extrabold px-3 py-1 rounded-full border uppercase ${cita.estado === 'Confirmada' ? 'bg-green-500/20 text-green-400 border-green-800' : cita.estado === 'Pendiente' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-800' : 'bg-blue-500/20 text-blue-400 border-blue-800'}">
+                                ${cita.estado}
+                            </span>
+                        </div>
+
+                        <div class="flex items-center gap-2 pt-2 border-t border-zinc-900 flex-wrap">
+                            <button onclick="cambiarEstadoCitaAdmin('${cita.id}', 'Confirmada')" class="px-3 py-1.5 bg-green-950/80 text-green-400 border border-green-800 rounded-lg text-xs font-bold hover:bg-green-900 cursor-pointer">
+                                Aceptar Cita
+                            </button>
+                            <button onclick="cambiarEstadoCitaAdmin('${cita.id}', 'Completada')" class="px-3 py-1.5 bg-blue-950/80 text-blue-400 border border-blue-800 rounded-lg text-xs font-bold hover:bg-blue-900 cursor-pointer">
+                                Corte Finalizado
+                            </button>
+                            <button onclick="cambiarEstadoCitaAdmin('${cita.id}', 'Cancelada')" class="px-3 py-1.5 bg-red-950/80 text-red-400 border border-red-900 rounded-lg text-xs font-bold hover:bg-red-900 cursor-pointer">
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            contenedor.innerHTML = html;
+        }
+
+        // Navegación entre Vistas SPA
+        function navegarA(idVista) {
+            ['vistaCliente', 'vistaGaleriaCliente', 'vistaLoginAdmin', 'vistaAdmin'].forEach(v => {
+                const el = document.getElementById(v);
+                if (el) el.classList.add('hidden');
+            });
+
+            const vistaTarget = document.getElementById(idVista);
+            if (vistaTarget) vistaTarget.classList.remove('hidden');
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function toggleSidebar(forceOpen) {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+
+            if (forceOpen === false) {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            } else {
+                sidebar.classList.toggle('-translate-x-full');
+                overlay.classList.toggle('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
