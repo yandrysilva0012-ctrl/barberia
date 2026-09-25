@@ -33,11 +33,6 @@
     </script>
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 
     <style>
         body {
@@ -58,16 +53,9 @@
         .border-gold {
             border-color: rgba(234, 179, 8, 0.4);
         }
-        .border-gold-strong {
-            border-color: rgba(234, 179, 8, 0.8);
-        }
         .shadow-gold {
             box-shadow: 0 0 25px rgba(234, 179, 8, 0.2);
         }
-        .shadow-gold-lg {
-            box-shadow: 0 0 40px rgba(234, 179, 8, 0.35);
-        }
-        /* Scrollbar personalización */
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
@@ -139,7 +127,7 @@
                     <span>Sincronización en Vivo</span>
                 </div>
                 <p class="text-amber-200/60 text-[11px] leading-relaxed">
-                    Los cambios de disponibilidad y turnos se actualizan al instante sin recargar.
+                    Las citas, la información de Pago Móvil y la disponibilidad se actualizan al instante para todos los clientes.
                 </p>
             </div>
         </div>
@@ -223,11 +211,11 @@
                         </select>
                         <p class="text-[11px] text-amber-600 mt-2 font-medium flex items-center gap-1">
                             <i class="fa-solid fa-circle-info"></i>
-                            <span>Las horas marcadas en <strong class="text-red-500">rojo (Ocupada)</strong> no se pueden seleccionar.</span>
+                            <span>Las horas marcadas en <strong class="text-red-500">rojo (Ocupada)</strong> no se pueden seleccionar. Se reinician a las 12:00 AM.</span>
                         </p>
                     </div>
 
-                    <!-- Datos de Pago Móvil e Instrucciones -->
+                    <!-- Datos de Pago Móvil e Instrucciones Dinámicas -->
                     <div class="p-4 md:p-5 bg-zinc-950 rounded-2xl border border-gold space-y-4 shadow-inner">
                         <div class="flex justify-between items-center">
                             <h4 id="lblTituloPago" class="font-bold text-amber-400 text-xs uppercase tracking-wider flex items-center gap-2">
@@ -237,7 +225,7 @@
                             <span class="text-[10px] bg-black text-amber-400 px-2.5 py-1 rounded-md font-bold border border-gold uppercase">Tasa Oficial</span>
                         </div>
                         <p class="text-xs text-amber-200/70 leading-relaxed">
-                            Efectúa tu pago con la información detallada a continuación para asegurar tu turno:
+                            Efectúa tu pago con la información actualizada a continuación para asegurar tu turno:
                         </p>
                         
                         <div class="flex flex-col sm:flex-row items-center gap-4 bg-black p-4 rounded-xl border border-gold/60">
@@ -246,8 +234,8 @@
                                 <span class="text-[9px] text-black font-extrabold mt-1 uppercase">Escanear QR</span>
                             </div>
                             <div class="text-xs space-y-1.5 text-amber-200 w-full">
-                                <p><strong class="text-amber-400">Banco:</strong> Banco Mercantil (0105)</p>
-                                <p><strong class="text-amber-400">Cédula / RIF:</strong> V-12.345.678</p>
+                                <p><strong class="text-amber-400">Banco:</strong> <span id="lblBancoBarbero" class="text-amber-100 font-bold">Mercantil (0105)</span></p>
+                                <p><strong class="text-amber-400">Cédula / RIF:</strong> <span id="lblCedulaBarbero" class="text-amber-100 font-bold">V-12.345.678</span></p>
                                 <p><strong class="text-amber-400">Teléfono:</strong> <span id="lblTelefonoBarbero" class="text-amber-300 font-extrabold">+58 412-1234567</span></p>
                                 <p><strong class="text-amber-400">Monto:</strong> <span id="lblMontoPago" class="text-gold-gradient font-bold">$10 USD</span></p>
                             </div>
@@ -297,7 +285,6 @@
                     </button>
                 </div>
 
-                <!-- Cuadrícula de Galería -->
                 <div id="gridGaleriaPublica" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <p class="text-xs text-amber-600 italic col-span-2 text-center py-8">No hay fotos cargadas en la galería por el momento.</p>
                 </div>
@@ -345,7 +332,6 @@
         <section id="vistaAdmin" class="space-y-6 hidden">
             <div class="bg-black p-6 md:p-8 rounded-3xl border border-gold shadow-gold space-y-6">
                 
-                <!-- Barra Superior de Control Barbero -->
                 <div class="flex justify-between items-center flex-wrap gap-4 border-b border-gold pb-4">
                     <div>
                         <h2 class="text-xl font-black text-gold-gradient uppercase tracking-wider flex items-center gap-2">
@@ -390,6 +376,31 @@
                     </div>
                 </div>
 
+                <!-- CONFIGURACIÓN DE PAGO MÓVIL DEDICADA -->
+                <div class="bg-zinc-950 p-5 rounded-2xl border border-gold space-y-4 shadow-inner">
+                    <h3 class="font-bold text-amber-400 text-xs uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-mobile-screen-button text-amber-400"></i>
+                        <span>Configurar Datos de Pago Móvil</span>
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase tracking-wider text-amber-400/80 mb-1">Nombre del Banco:</label>
+                            <input type="text" id="inputBanco" value="Mercantil (0105)" placeholder="Ej. Banesco (0134)" class="w-full p-2.5 rounded-xl bg-black border border-gold text-xs text-amber-100 shadow-inner">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase tracking-wider text-amber-400/80 mb-1">Cédula / RIF:</label>
+                            <input type="text" id="inputCedula" value="V-12.345.678" placeholder="Ej. V-20.123.456" class="w-full p-2.5 rounded-xl bg-black border border-gold text-xs text-amber-100 shadow-inner">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase tracking-wider text-amber-400/80 mb-1">Teléfono Pago Móvil / WhatsApp:</label>
+                            <input type="text" id="inputTelefono" value="584121234567" placeholder="Ej. 584121234567" class="w-full p-2.5 rounded-xl bg-black border border-gold text-xs text-amber-100 shadow-inner">
+                        </div>
+                    </div>
+                    <button onclick="guardarContactoAdmin()" class="w-full bg-gold-gradient text-black text-xs px-4 py-3 rounded-xl font-black uppercase tracking-wider transition cursor-pointer shadow-gold hover:opacity-95 active:scale-98">
+                        Actualizar Datos de Pago Móvil en Vivo
+                    </button>
+                </div>
+
                 <!-- SUBIR CORTES A LA GALERÍA -->
                 <div class="bg-zinc-950 p-5 rounded-2xl border border-gold space-y-4 shadow-inner">
                     <h3 class="font-bold text-amber-400 text-xs uppercase tracking-wider flex items-center gap-2">
@@ -427,7 +438,7 @@
                     </div>
                 </div>
 
-                <!-- CONFIGURACIÓN DE NEGOCIO -->
+                <!-- PRECIO, JORNADA Y ENLACES -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- PRECIO Y HORARIO -->
                     <div class="bg-zinc-950 p-4 rounded-2xl border border-gold space-y-3 shadow-inner">
@@ -456,17 +467,13 @@
                         </div>
                     </div>
 
-                    <!-- CONTACTO Y ENLACE -->
+                    <!-- ENLACE PARA COMPARTIR -->
                     <div class="bg-zinc-950 p-4 rounded-2xl border border-gold space-y-3 shadow-inner">
                         <h3 class="font-bold text-amber-400 text-xs uppercase tracking-wider flex items-center gap-2">
-                            <i class="fa-solid fa-phone text-amber-400"></i>
-                            <span>Teléfono y Enlace Web</span>
+                            <i class="fa-solid fa-link text-amber-400"></i>
+                            <span>Enlace Web</span>
                         </h3>
                         <div class="space-y-3">
-                            <div>
-                                <label class="block text-[11px] font-bold uppercase tracking-wider text-amber-400/80 mb-1">Teléfono Pago Móvil / WhatsApp:</label>
-                                <input type="text" id="inputTelefono" value="584121234567" class="w-full p-2.5 rounded-xl bg-black border border-gold text-xs text-amber-100 shadow-inner">
-                            </div>
                             <div>
                                 <label class="block text-[11px] font-bold uppercase tracking-wider text-amber-400/80 mb-1">Enlace para Compartir:</label>
                                 <div class="flex gap-2">
@@ -476,9 +483,6 @@
                                     </button>
                                 </div>
                             </div>
-                            <button onclick="guardarContactoAdmin()" class="w-full bg-zinc-900 hover:bg-zinc-800 text-amber-300 text-xs px-4 py-2.5 rounded-xl font-bold uppercase tracking-wider border border-gold transition cursor-pointer">
-                                Actualizar Teléfono
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -491,7 +495,7 @@
                             <span>Solicitudes y Citas de Clientes</span>
                         </h3>
                         <button onclick="limpiarCitasDelDia()" class="text-xs bg-red-950/80 text-red-400 hover:bg-red-900 border border-red-900 px-3 py-1.5 rounded-xl font-bold transition cursor-pointer">
-                            <i class="fa-solid fa-trash-can"></i> Limpiar Citas Finalizadas
+                            <i class="fa-solid fa-trash-can"></i> Limpiar Citas Manualmente
                         </button>
                     </div>
 
@@ -516,39 +520,36 @@
 
     <!-- SCRIPT PRINCIPAL Y MOTOR DE TIEMPO REAL -->
     <script>
-        // Credenciales y Claves Maestras
         const ADMIN_CORREO = "titibarber@gmail.com";
         const ADMIN_CLAVE = "9010";
         const ADMIN_SESION_KEY = "titibarber_admin_logged";
 
-        // Estructura de Datos del Estado de la Plataforma
         let appState = {
             config: {
-                estadoBarbero: 'TRABAJANDO', // TRABAJANDO, DESCANSO, CERRADO
+                estadoBarbero: 'TRABAJANDO',
+                banco: 'Mercantil (0105)',
+                cedula: 'V-12.345.678',
                 telefono: '584121234567',
                 precioUSD: '10',
                 horaInicio: '10:00',
-                horaFin: '20:00'
+                horaFin: '20:00',
+                ultimaFechaReinicio: ''
             },
             citas: [],
             galeria: []
         };
 
-        // Canal de sincronización local para navegadores múltiples en vivo
         const broadcastChannel = new BroadcastChannel('titi_barber_realtime_channel');
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Asignar URL para compartir
             const inputEnlace = document.getElementById('inputEnlaceCompartir');
             if (inputEnlace) inputEnlace.value = window.location.href;
 
-            // Cargar datos persistentes guardados o por defecto
             cargarDatosGuardados();
-
-            // Sincronizar UI
+            verificarReinicioDiarioAutomatico();
             actualizarUICompleta();
+            programarTimerMedianoche();
 
-            // Escuchar cambios de otras pestañas o ventanas en tiempo real
             broadcastChannel.onmessage = function(event) {
                 if (event.data && event.data.type === 'SYNC_STATE') {
                     appState = event.data.state;
@@ -558,7 +559,36 @@
             };
         });
 
-        // Cargar datos locales de respaldo
+        function obtenerFechaClaveHoy() {
+            const hoy = new Date();
+            const yyyy = hoy.getFullYear();
+            const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+            const dd = String(hoy.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        function verificarReinicioDiarioAutomatico() {
+            const fechaHoyClave = obtenerFechaClaveHoy();
+
+            if (appState.config.ultimaFechaReinicio !== fechaHoyClave) {
+                appState.citas = [];
+                appState.config.ultimaFechaReinicio = fechaHoyClave;
+                guardarEstadoLocal(true);
+            }
+        }
+
+        function programarTimerMedianoche() {
+            const ahora = new Date();
+            const mañana = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate() + 1, 0, 0, 2);
+            const tiempoHastaMedianoche = mañana.getTime() - ahora.getTime();
+
+            setTimeout(() => {
+                verificarReinicioDiarioAutomatico();
+                actualizarUICompleta();
+                programarTimerMedianoche();
+            }, tiempoHastaMedianoche);
+        }
+
         function cargarDatosGuardados() {
             const configGuardada = localStorage.getItem('titibarber_config');
             const citasGuardadas = localStorage.getItem('titibarber_citas');
@@ -568,7 +598,6 @@
             if (citasGuardadas) appState.citas = JSON.parse(citasGuardadas);
             if (galeriaGuardada) appState.galeria = JSON.parse(galeriaGuardada);
 
-            // Si la galería está vacía, agregar muestras predeterminadas
             if (appState.galeria.length === 0) {
                 appState.galeria = [
                     { id: 'g1', titulo: 'Fade Alto con Sombras', url: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=500&auto=format&fit=crop&q=80' },
@@ -577,7 +606,6 @@
             }
         }
 
-        // Guardar estado local y transmitir a otras ventanas
         function guardarEstadoLocal(transmitir = true) {
             localStorage.setItem('titibarber_config', JSON.stringify(appState.config));
             localStorage.setItem('titibarber_citas', JSON.stringify(appState.citas));
@@ -610,10 +638,9 @@
             const bannerTxt = document.getElementById('bannerEstadoTxt');
             const fechaTxt = document.getElementById('fechaActualTxt');
 
-            // Formatear Fecha Actual
             const hoy = new Date();
-            const opcionesFecha = { weekday: 'short', day: 'numeric', month: 'short' };
-            if (fechaTxt) fechaTxt.innerText = hoy.toLocaleDateString('es-ES', opcionesFecha).toUpperCase();
+            const opcionesFecha = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+            if (fechaTxt) fechaTxt.innerText = hoy.toLocaleDateString('es-ES', opcionesFecha);
 
             let colorBadge = '';
             let textoEstado = '';
@@ -643,23 +670,27 @@
         function actualizarConfiguracionPreciosYContacto() {
             const precioUSD = appState.config.precioUSD;
             const telefono = appState.config.telefono;
+            const banco = appState.config.banco || 'Mercantil (0105)';
+            const cedula = appState.config.cedula || 'V-12.345.678';
 
             document.getElementById('lblPrecioCorte').innerText = `$${precioUSD} USD`;
             document.getElementById('lblTituloPago').innerHTML = `<i class="fa-solid fa-mobile-screen-button text-amber-400"></i> Datos Pago Móvil ($${precioUSD} USD)`;
             document.getElementById('lblMontoPago').innerText = `$${precioUSD} USD`;
             document.getElementById('lblTelefonoBarbero').innerText = `+${telefono}`;
+            document.getElementById('lblBancoBarbero').innerText = banco;
+            document.getElementById('lblCedulaBarbero').innerText = cedula;
 
-            // Actualizar QR Dinámico
             const qrImg = document.getElementById('imgCodigoQR');
             if (qrImg) {
-                qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=PagoMovilTitiBarber_${telefono}_${precioUSD}USD`;
+                qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=PagoMovil_${banco}_${cedula}_${telefono}_${precioUSD}USD`;
             }
 
-            // Inputs panel admin
             document.getElementById('inputPrecio').value = precioUSD;
             document.getElementById('inputHoraInicio').value = appState.config.horaInicio;
             document.getElementById('inputHoraFin').value = appState.config.horaFin;
             document.getElementById('inputTelefono').value = telefono;
+            document.getElementById('inputBanco').value = banco;
+            document.getElementById('inputCedula').value = cedula;
         }
 
         function generarHorariosDisponibles() {
@@ -695,7 +726,7 @@
                     html += `<option value="${horaFormato}" class="text-amber-400 bg-black font-semibold">🟢 ${horaFormato} (Disponible)</option>`;
                 }
 
-                minInicio += 60; // Intervalos de 1 hora
+                minInicio += 60;
             }
 
             selectHora.innerHTML = html;
@@ -705,7 +736,7 @@
             event.preventDefault();
 
             if (appState.config.estadoBarbero === 'CERRADO') {
-                alert('⚠️ La barbería se encuentra cerrada en este momento. Por favor agenda cuando esté en servicio.');
+                alert('⚠️ La barbería se encuentra cerrada en este momento.');
                 return;
             }
 
@@ -723,19 +754,16 @@
                 hora: hora,
                 monto: appState.config.precioUSD,
                 fecha: new Date().toLocaleDateString('es-ES'),
-                estado: 'Pendiente', // Pendiente, Confirmada, Completada, Cancelada
-                creadoEn: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+                estado: 'Pendiente'
             };
 
             appState.citas.push(nuevaCita);
             guardarEstadoLocal(true);
             actualizarUICompleta();
 
-            // Generar enlace directo a WhatsApp con el formato requerido
-            const mensajeWS = encodeURIComponent(`Hola Titi Barber 👋, acabo de agendar una cita.\n\n👤 *Nombre:* ${nombre}\n⏰ *Hora:* ${hora}\n💵 *Monto:* $${appState.config.precioUSD} USD\n\nAdjunto mi comprobante de Pago Móvil.`);
+            const mensajeWS = encodeURIComponent(`Hola Titi Barber 👋, acabo de agendar una cita.\n\n👤 *Nombre:* ${nombre}\n⏰ *Hora:* ${hora}\n💵 *Monto:* $${appState.config.precioUSD} USD\n🏦 *Banco Destino:* ${appState.config.banco}\n\nAdjunto mi comprobante de Pago Móvil.`);
             const urlWhatsApp = `https://wa.me/${appState.config.telefono}?text=${mensajeWS}`;
 
-            // Limpiar formulario y notificar
             document.getElementById('nombreCliente').value = '';
             document.getElementById('horaSeleccionada').value = '';
 
@@ -748,16 +776,13 @@
             if (!contenedor) return;
 
             if (appState.citas.length === 0) {
-                contenedor.innerHTML = '<p class="text-xs text-amber-600/80 italic py-2">No hay citas registradas en este dispositivo.</p>';
+                contenedor.innerHTML = '<p class="text-xs text-amber-600/80 italic py-2">No hay citas registradas para el día de hoy.</p>';
                 return;
             }
 
             let html = '';
-            // Mostrar de más recientes a antiguas
             [...appState.citas].reverse().forEach(cita => {
                 let badgeClass = '';
-                let estadoTexto = cita.estado;
-
                 if (cita.estado === 'Pendiente') badgeClass = 'bg-yellow-500/10 text-yellow-400 border-yellow-800';
                 else if (cita.estado === 'Confirmada') badgeClass = 'bg-green-500/10 text-green-400 border-green-800';
                 else if (cita.estado === 'Completada') badgeClass = 'bg-blue-500/10 text-blue-400 border-blue-800';
@@ -772,7 +797,7 @@
                             </p>
                         </div>
                         <span class="text-[10px] font-bold px-3 py-1 rounded-full border uppercase ${badgeClass}">
-                            ${estadoTexto}
+                            ${cita.estado}
                         </span>
                     </div>
                 `;
@@ -862,7 +887,6 @@
             btnCerrado.className = `py-3 px-4 rounded-xl font-black text-xs uppercase transition border flex items-center justify-center gap-2 cursor-pointer ${est === 'CERRADO' ? 'bg-red-500/20 text-red-500 border-red-500 shadow-gold' : 'bg-black text-zinc-500 border-zinc-800'}`;
         }
 
-        // Subir fotos a la galería
         function procesarSubirCorte(event) {
             event.preventDefault();
             const archivoInput = document.getElementById('inputArchivoFoto');
@@ -944,7 +968,6 @@
             contenedor.innerHTML = html;
         }
 
-        // Configuración de Jornada y Pagos
         function guardarAjustesJornadaAdmin() {
             const precio = document.getElementById('inputPrecio').value;
             const hIni = document.getElementById('inputHoraInicio').value;
@@ -961,11 +984,16 @@
 
         function guardarContactoAdmin() {
             const tel = document.getElementById('inputTelefono').value.trim();
+            const banco = document.getElementById('inputBanco').value.trim();
+            const cedula = document.getElementById('inputCedula').value.trim();
+
             appState.config.telefono = tel;
+            appState.config.banco = banco;
+            appState.config.cedula = cedula;
 
             guardarEstadoLocal(true);
             actualizarUICompleta();
-            alert('✅ Teléfono de Pago Móvil/WhatsApp actualizado.');
+            alert('✅ Datos de Pago Móvil actualizados en vivo.');
         }
 
         function copiarEnlaceWeb() {
@@ -975,7 +1003,6 @@
             alert('📋 Enlace copiado al portapapeles.');
         }
 
-        // Gestión de Citas
         function cambiarEstadoCitaAdmin(idCita, nuevoEstado) {
             const idx = appState.citas.findIndex(c => c.id === idCita);
             if (idx !== -1) {
@@ -986,8 +1013,8 @@
         }
 
         function limpiarCitasDelDia() {
-            if (confirm('¿Deseas borrar las citas completadas y canceladas de la vista?')) {
-                appState.citas = appState.citas.filter(c => c.estado === 'Pendiente' || c.estado === 'Confirmada');
+            if (confirm('¿Deseas vaciar todas las citas agendadas para reiniciar manualmente?')) {
+                appState.citas = [];
                 guardarEstadoLocal(true);
                 actualizarUICompleta();
             }
@@ -998,7 +1025,7 @@
             if (!contenedor) return;
 
             if (appState.citas.length === 0) {
-                contenedor.innerHTML = '<p class="text-xs text-amber-600 italic">No hay citas registradas en el sistema.</p>';
+                contenedor.innerHTML = '<p class="text-xs text-amber-600 italic">No hay citas registradas para el día de hoy.</p>';
                 return;
             }
 
@@ -1036,7 +1063,6 @@
             contenedor.innerHTML = html;
         }
 
-        // Navegación entre Vistas SPA
         function navegarA(idVista) {
             ['vistaCliente', 'vistaGaleriaCliente', 'vistaLoginAdmin', 'vistaAdmin'].forEach(v => {
                 const el = document.getElementById(v);
